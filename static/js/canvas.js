@@ -179,6 +179,23 @@ var Canvas = (function() {
 
     if (document.getElementById('fp').classList.contains('open')) return;
 
+    // 若紋理補丁模式但尚未設定來源 → 阻擋繪製，提示使用者先選取來源
+    if (typeof FillEngine !== 'undefined' &&
+        FillEngine.getMode() === 'patch' &&
+        !FillEngine.getPatchSource() &&
+        !FillEngine.isPatchSelecting()) {
+      App.setSt('⚠️ 請先點擊左側「點此選取來源」設定紋理補丁來源區域');
+      var hint = document.getElementById('patch-hint');
+      if (hint) {
+        hint.classList.add('needs-source', 'pulse');
+        setTimeout(function() { hint.classList.remove('pulse'); }, 1300);
+      }
+      var btnSel = document.getElementById('btnPatchSelect');
+      if (btnSel) { btnSel.style.borderColor = 'var(--red)'; btnSel.style.color = 'var(--red)'; }
+      e.preventDefault();
+      return;
+    }
+
     // 普通點擊：小移動 = 點擊編輯（mouseup 觸發），大移動 = 繪製新框
     startX = p.x; startY = p.y;
     drawing = true;

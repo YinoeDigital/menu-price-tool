@@ -26,9 +26,21 @@ var FillEngine = (function () {
     var sourcePreview = document.getElementById('patch-source-preview');
     if (sourcePreview) sourcePreview.style.display = 'none';
 
+    // 切換到智能填色時移除警示；切換回補丁時恢復「必填」狀態
+    var hint = document.getElementById('patch-hint');
+    var badge = document.getElementById('patchRequiredBadge');
+    var btnSel = document.getElementById('btnPatchSelect');
+    if (m === 'autofill') {
+      if (hint) hint.classList.remove('needs-source', 'pulse');
+    } else {
+      // 回到 patch 模式，source 已被清空，恢復必填狀態
+      if (badge) { badge.textContent = '必填'; badge.style.background = 'var(--red)'; }
+      if (btnSel) { btnSel.style.borderColor = ''; btnSel.style.color = ''; }
+    }
+
     App.setSt(m === 'autofill'
       ? '模式：智能填色 — 框選後自動取樣背景色並羽化邊緣'
-      : '模式：紋理補丁 — 請先點「選取來源區域」後再框選來源，再框選價格位置');
+      : '模式：紋理補丁 — 請先點「點此選取來源」設定來源區域，再框選價格位置');
   }
 
   function getMode() { return mode; }
@@ -57,7 +69,14 @@ var FillEngine = (function () {
       preview.src = tmpC.toDataURL();
       preview.style.display = 'block';
     }
-    App.setSt('已設定來源區域 (' + Math.round(src.w) + 'x' + Math.round(src.h) + 'px)，現在可以框選要覆蓋的價格位置');
+    App.setSt('✅ 來源區域已設定 (' + Math.round(src.w) + 'x' + Math.round(src.h) + 'px)，現在可以框選要覆蓋的價格位置');
+    // 解除阻擋警示
+    var hint = document.getElementById('patch-hint');
+    if (hint) hint.classList.remove('needs-source', 'pulse');
+    var badge = document.getElementById('patchRequiredBadge');
+    if (badge) { badge.textContent = '✓ 已設定'; badge.style.background = '#27AE60'; }
+    var btnSel = document.getElementById('btnPatchSelect');
+    if (btnSel) { btnSel.style.borderColor = ''; btnSel.style.color = ''; }
   }
 
   // ── 方案一：環狀取樣平均色 + 邊緣羽化 ──

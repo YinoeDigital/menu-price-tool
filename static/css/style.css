@@ -478,6 +478,19 @@ select:focus,input:focus{border-color:var(--red);}
 .fp-tr svg{flex-shrink:0;margin-top:2px;stroke:var(--red);}
 .fp-ft{padding:13px 15px;border-top:1px solid var(--glt);display:flex;gap:8px;flex-shrink:0;}
 
+/* ── 紋理補丁必填警示 ── */
+.patch-hint-required{transition:border-color .2s,box-shadow .2s;}
+.patch-hint-required.needs-source{
+  border-color:var(--red) !important;
+  box-shadow:0 0 0 3px rgba(192,57,43,.15);
+}
+@keyframes patchPulse{
+  0%{box-shadow:0 0 0 0 rgba(192,57,43,.5);}
+  70%{box-shadow:0 0 0 8px rgba(192,57,43,0);}
+  100%{box-shadow:0 0 0 0 rgba(192,57,43,0);}
+}
+.patch-hint-required.pulse{animation:patchPulse .6s ease-out 2;}
+
 /* ── 字樣設定卡片 ── */
 .fp-card{
   border:1px solid var(--glt);border-radius:var(--r);
