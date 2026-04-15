@@ -97,7 +97,7 @@ var App = (function() {
           r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
         }
         var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
-        var tc = lum > 128 ? '#3D1A10' : '#FAF0E0';
+        var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
         var ns = String(nv);
         if (box.orient === 'vertical') {
           var ch = box.h / ns.length;
@@ -250,7 +250,7 @@ var App = (function() {
         r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
       }
       var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
-      var tc = lum > 128 ? '#3D1A10' : '#FAF0E0';
+      var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
       var ns = String(nv);
       if (box.orient === 'vertical') {
         var ch = box.h / ns.length;

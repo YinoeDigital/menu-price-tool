@@ -8,6 +8,7 @@ var FloatPanel = (function() {
   var stickyFontSize = 0;
   var stickyRound10 = false;
   var stickyRound5 = false;
+  var stickyFontColor = ''; // '' = 自動
 
   function init() {
     document.getElementById('fpVal').addEventListener('input', function() {
@@ -22,6 +23,28 @@ var FloatPanel = (function() {
       var v = parseInt(this.value);
       document.getElementById('fpFontBadge').textContent = (v > 0) ? v + 'px' : '自動';
     });
+  }
+
+  function setColorUI(color) {
+    var isAuto = !color;
+    document.getElementById('fpFontColor').value = color || '#3D1A10';
+    document.getElementById('fpFontColor').style.opacity = isAuto ? '0.35' : '1';
+    document.getElementById('fpColorAuto').style.background = isAuto ? 'var(--red-lt)' : 'var(--cream)';
+    document.getElementById('fpColorAuto').style.color = isAuto ? 'var(--red)' : 'var(--gmd)';
+    document.getElementById('fpColorAuto').style.borderColor = isAuto ? 'var(--red)' : 'var(--glt)';
+  }
+
+  function onColorInput() {
+    stickyFontColor = document.getElementById('fpFontColor').value;
+    document.getElementById('fpFontColor').style.opacity = '1';
+    document.getElementById('fpColorAuto').style.background = 'var(--cream)';
+    document.getElementById('fpColorAuto').style.color = 'var(--gmd)';
+    document.getElementById('fpColorAuto').style.borderColor = 'var(--glt)';
+  }
+
+  function resetColor() {
+    stickyFontColor = '';
+    setColorUI('');
   }
 
   // ── 計算新價格（含四捨五入選項）──
@@ -73,6 +96,7 @@ var FloatPanel = (function() {
     document.getElementById('fpSz').textContent = Math.round(w) + '×' + Math.round(h) + ' px';
     document.getElementById('fpFontSize').value = stickyFontSize > 0 ? stickyFontSize : '';
     document.getElementById('fpFontBadge').textContent = stickyFontSize > 0 ? stickyFontSize + 'px' : '自動';
+    setColorUI(stickyFontColor);
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
     updateGroupInfo();
@@ -98,6 +122,7 @@ var FloatPanel = (function() {
     var bfs = box.fontSize || 0;
     document.getElementById('fpFontSize').value = bfs > 0 ? bfs : '';
     document.getElementById('fpFontBadge').textContent = bfs > 0 ? bfs + 'px' : '自動';
+    setColorUI(box.fontColor || stickyFontColor || '');
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
     updateGroupInfo();
@@ -146,6 +171,9 @@ var FloatPanel = (function() {
     var fontSize = (fsInput > 0) ? fsInput : 0;
     stickyFontSize = fontSize;
 
+    // 讀取字體顏色
+    var fontColor = stickyFontColor; // '' = 自動
+
     // 讀取最終新價格（可能是使用者手動覆蓋的）
     var newValInput = parseInt(document.getElementById('fpNew').value);
     var newValue = (newValInput > 0) ? newValInput : calcNewPrice(v);
@@ -155,7 +183,7 @@ var FloatPanel = (function() {
     if (editingId !== null) {
       App.updateBox(editingId, {
         value: v, orient: fpOrient, group: fpGroup,
-        fontSize: fontSize, newValue: newValue
+        fontSize: fontSize, newValue: newValue, fontColor: fontColor
       });
       document.getElementById('fp').querySelector('.fp-title').textContent = '輸入價格資訊';
       App.setSt('已更新價格：' + v + ' → ' + newValue);
@@ -165,7 +193,7 @@ var FloatPanel = (function() {
         x: pendingBox.x, y: pendingBox.y,
         w: pendingBox.w, h: pendingBox.h,
         value: v, orient: fpOrient, group: fpGroup,
-        fontSize: fontSize, newValue: newValue,
+        fontSize: fontSize, newValue: newValue, fontColor: fontColor,
         fillMode: currentMode,
         patchSource: (currentMode === 'patch' && typeof FillEngine !== 'undefined') ? FillEngine.getPatchSource() : null
       });
@@ -213,6 +241,8 @@ var FloatPanel = (function() {
     selectGroup: selectGroup,
     updateGroupInfo: updateGroupInfo,
     onRoundChange: onRoundChange,
+    onColorInput: onColorInput,
+    resetColor: resetColor,
     getGroup: getGroup,
     getStickyFontSize: getStickyFontSize
   };

@@ -124,10 +124,11 @@ var Canvas = (function() {
   function onMouseDown(e) {
     if (!img) return;
     if (document.getElementById('fp').classList.contains('open')) return;
-    if (e.button === 1 || e.altKey) {
+    if (e.button === 1 || e.altKey || e.shiftKey) {
       isPanning = true;
       panSX = e.clientX; panSY = e.clientY;
       panOX = panX; panOY = panY;
+      mc.style.cursor = 'grabbing';
       e.preventDefault();
       return;
     }
@@ -162,6 +163,15 @@ var Canvas = (function() {
     var p = toCanvas(e.clientX, e.clientY);
     var ctrlHeld = e.ctrlKey;
 
+    // Shift 平移
+    if (isPanning) {
+      panX = panOX + (e.clientX - panSX);
+      panY = panOY + (e.clientY - panSY);
+      applyTransform();
+      document.getElementById('coordTxt').textContent = 'x:' + Math.round(toCanvas(e.clientX, e.clientY).x) + ' y:' + Math.round(toCanvas(e.clientX, e.clientY).y);
+      return;
+    }
+
     // 拖曳中
     if (isDragging && dragBox) {
       var newX = p.x - dragOffX;
@@ -184,6 +194,7 @@ var Canvas = (function() {
     }
 
     if (!drawing) {
+      if (e.shiftKey) { mc.style.cursor = 'grab'; return; }
       var overBox = false;
       var boxes = App.getBoxes();
       for (var bi = 0; bi < boxes.length; bi++) {
@@ -245,7 +256,7 @@ var Canvas = (function() {
   }
 
   function onMouseUp(e) {
-    if (isPanning) { isPanning = false; return; }
+    if (isPanning) { isPanning = false; mc.style.cursor = e.shiftKey ? 'grab' : 'crosshair'; return; }
 
     // 拖曳結束
     if (isDragging) {
