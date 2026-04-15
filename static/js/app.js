@@ -156,6 +156,35 @@ var App = (function() {
     if (btn) btn.classList.toggle('active', rp.classList.contains('open'));
   }
 
+  // ── TIPS PANEL ──
+  var tipsOpen = false;
+  function toggleTips() {
+    tipsOpen = !tipsOpen;
+    document.getElementById('tipsPanel').classList.toggle('open', tipsOpen);
+    document.getElementById('btnTips').classList.toggle('active', tipsOpen);
+    if (tipsOpen) {
+      var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform) || (navigator.userAgent.includes('Mac') && !navigator.userAgent.includes('Windows'));
+      setTipsOS(isMac ? 'mac' : 'win');
+    }
+  }
+  function setTipsOS(os) {
+    document.querySelectorAll('.tips-mac').forEach(function(el) { el.style.display = os === 'mac' ? '' : 'none'; });
+    document.querySelectorAll('.tips-win').forEach(function(el) { el.style.display = os === 'win' ? '' : 'none'; });
+    document.getElementById('tipsMac').classList.toggle('active', os === 'mac');
+    document.getElementById('tipsWin').classList.toggle('active', os === 'win');
+  }
+  // 點外部關閉 Tips
+  document.addEventListener('click', function(e) {
+    if (!tipsOpen) return;
+    var panel = document.getElementById('tipsPanel');
+    var btn = document.getElementById('btnTips');
+    if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+      tipsOpen = false;
+      panel.classList.remove('open');
+      btn.classList.remove('active');
+    }
+  });
+
   function renderPriceList() {
     var cnt = boxes.length;
     document.getElementById('pcnt').textContent = cnt;
@@ -548,6 +577,8 @@ var App = (function() {
     getBoxes: getBoxes,
     isPreview: isPreview,
     getEffPct: getEffPct,
-    getGlobalPct: getGlobalPct
+    getGlobalPct: getGlobalPct,
+    toggleTips: toggleTips,
+    setTipsOS: setTipsOS
   };
 })();

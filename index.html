@@ -295,6 +295,41 @@
         </button>
       </div>
       <div class="tb-right">
+        <!-- 快捷 Tips 按鈕 + 彈出面板 -->
+        <div style="position:relative;">
+          <button class="btn btn-outline" id="btnTips" style="width:auto;padding:7px 14px;font-size:13px;" onclick="App.toggleTips()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            快捷 Tips
+          </button>
+          <div class="tips-panel" id="tipsPanel">
+            <div class="tips-hd">
+              <span class="tips-title">⌨️ 快捷鍵說明</span>
+              <div class="tips-os-tabs">
+                <button class="tips-os-btn active" id="tipsMac" onclick="App.setTipsOS('mac')">Mac</button>
+                <button class="tips-os-btn" id="tipsWin" onclick="App.setTipsOS('win')">Windows</button>
+              </div>
+            </div>
+            <table class="tips-tbl">
+              <tr><th>功能</th><th id="tipsKeyHead">按鍵</th></tr>
+              <tr><td>繪製新框</td><td>拖曳空白處</td></tr>
+              <tr><td>點擊框 → 編輯</td><td>點擊</td></tr>
+              <tr class="tips-mac"><td>複製上次框大小</td><td>⌃ Ctrl + 拖曳</td></tr>
+              <tr class="tips-win" style="display:none"><td>複製上次框大小</td><td>Ctrl + 拖曳</td></tr>
+              <tr class="tips-mac"><td>移動框位置</td><td>⌘ Cmd + 拖曳</td></tr>
+              <tr class="tips-win" style="display:none"><td>移動框位置</td><td>⊞ Win + 拖曳</td></tr>
+              <tr class="tips-mac"><td>平移畫布</td><td>⇧ Shift + 拖曳</td></tr>
+              <tr class="tips-win" style="display:none"><td>平移畫布</td><td>Shift + 拖曳</td></tr>
+              <tr><td>縮放畫布</td><td>滾輪</td></tr>
+              <tr class="tips-mac"><td>確認輸入</td><td>↵ Return</td></tr>
+              <tr class="tips-win" style="display:none"><td>確認輸入</td><td>↵ Enter</td></tr>
+              <tr><td>取消 / 關閉面板</td><td>Esc</td></tr>
+              <tr><td>還原字體顏色自動</td><td>雙擊色塊</td></tr>
+            </table>
+          </div>
+        </div>
         <button class="btn btn-outline" id="btnEditList" style="width:auto;padding:7px 14px;font-size:13px;" onclick="App.toggleEditList()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
             <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>

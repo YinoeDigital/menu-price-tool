@@ -288,6 +288,32 @@ select:focus,input:focus{border-color:var(--red);}
 .rp-body{flex:1;overflow-y:auto;padding:10px;}
 .rp-body .price-list{max-height:none;}
 
+/* ── TIPS PANEL ── */
+.tips-panel{
+  display:none;position:absolute;top:calc(100% + 6px);right:0;
+  background:var(--wh);border:1px solid var(--glt);border-radius:var(--rlg);
+  box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:100;width:320px;
+  padding:0;overflow:hidden;
+}
+.tips-panel.open{display:block;}
+.tips-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px 8px;border-bottom:1px solid var(--glt);
+}
+.tips-title{font-size:13px;font-weight:600;color:var(--gdk);}
+.tips-os-tabs{display:flex;gap:4px;}
+.tips-os-btn{
+  font-size:11px;font-weight:500;font-family:inherit;
+  padding:3px 10px;border-radius:20px;border:1px solid var(--glt);
+  background:var(--cream);color:var(--gmd);cursor:pointer;transition:all .15s;
+}
+.tips-os-btn.active{background:var(--red);border-color:var(--red);color:#fff;}
+.tips-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tips-tbl th,.tips-tbl td{padding:6px 14px;text-align:left;border-bottom:1px solid var(--glt);}
+.tips-tbl tr:last-child td{border-bottom:none;}
+.tips-tbl th{font-size:11px;font-weight:600;color:var(--gmd);background:var(--cream);padding:5px 14px;}
+.tips-tbl td:last-child{font-family:'SF Mono','Consolas',monospace;color:var(--red);font-size:11px;white-space:nowrap;}
+
 .zoom-ctrl{display:flex;align-items:center;gap:4px;}
 .zb{
   width:28px;height:28px;border-radius:var(--r);
