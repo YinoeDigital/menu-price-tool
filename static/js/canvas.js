@@ -1,4 +1,4 @@
-// canvas.js — Canvas 框選、縮放、平移
+// canvas.js — Canvas 框選、縮放、平移、拖曳對齊
 
 var Canvas = (function() {
   var mc, ctx, cc, cw;
@@ -10,8 +10,16 @@ var Canvas = (function() {
   var panX = 0, panY = 0;
   var isPanning = false;
   var panSX = 0, panSY = 0, panOX = 0, panOY = 0;
-  var onBoxDraw = null; // callback(x,y,w,h)
-  var lastW = 0, lastH = 0; // 上次確認的矩形尺寸
+  var onBoxDraw = null;
+  var lastW = 0, lastH = 0;
+
+  // ── 拖曳狀態 ──
+  var isDragging = false;
+  var dragBox = null;
+  var dragOffX = 0, dragOffY = 0;
+  var dragOrigX = 0, dragOrigY = 0;
+  var dragMoved = false;
+  var SNAP = 8; // 吸附閾值（圖片像素）
 
   function init(canvasId, containerId, onDraw) {
     mc = document.getElementById(canvasId);
@@ -26,7 +34,8 @@ var Canvas = (function() {
     mc.addEventListener('mousedown', onMouseDown);
     mc.addEventListener('mousemove', onMouseMove);
     mc.addEventListener('mouseup', onMouseUp);
-    window.addEventListener('mouseup', function() { isPanning = false; });
+    window.addEventListener('mousemove', onWindowMouseMove);
+    window.addEventListener('mouseup', onWindowMouseUp);
     cw.addEventListener('wheel', onWheel, { passive: false });
     cw.addEventListener('mousedown', function(e) {
       if (!document.getElementById('fp').classList.contains('open')) return;
@@ -37,6 +46,81 @@ var Canvas = (function() {
     }, true);
   }
 
+  // ── 對齊輔助計算 ──
+  function computeGuides(x, y, w, h) {
+    var boxes = App.getBoxes();
+    var bestDX = SNAP, bestDY = SNAP;
+    var snapX = null, snapY = null;
+    var vLines = [], hLines = [];
+
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i];
+      if (dragBox && b.id === dragBox.id) continue;
+      var bx = b.x, by = b.y, bw = b.w, bh = b.h;
+
+      // X 候選：[拖曳邊位置, 參考邊位置, 吸附後的 x]
+      var xCands = [
+        [x,       bx,        bx,        bx],          // 左←左
+        [x,       bx + bw,   bx + bw,   bx + bw],     // 左←右
+        [x + w,   bx,        bx,        bx - w],      // 右←左
+        [x + w,   bx + bw,   bx + bw,   bx + bw - w], // 右←右
+        [x + w/2, bx + bw/2, bx + bw/2, bx + bw/2 - w/2], // 中←中
+      ];
+      for (var xi = 0; xi < xCands.length; xi++) {
+        var d = Math.abs(xCands[xi][0] - xCands[xi][1]);
+        if (d < bestDX) {
+          bestDX = d;
+          snapX = xCands[xi][3];
+          vLines = [xCands[xi][2]];
+        }
+      }
+
+      // Y 候選
+      var yCands = [
+        [y,       by,        by,        by],
+        [y,       by + bh,   by + bh,   by + bh],
+        [y + h,   by,        by,        by - h],
+        [y + h,   by + bh,   by + bh,   by + bh - h],
+        [y + h/2, by + bh/2, by + bh/2, by + bh/2 - h/2],
+      ];
+      for (var yi = 0; yi < yCands.length; yi++) {
+        var dy = Math.abs(yCands[yi][0] - yCands[yi][1]);
+        if (dy < bestDY) {
+          bestDY = dy;
+          snapY = yCands[yi][3];
+          hLines = [yCands[yi][2]];
+        }
+      }
+    }
+    return { snapX: snapX, snapY: snapY, vLines: vLines, hLines: hLines };
+  }
+
+  function drawGuides(g) {
+    if (!img) return;
+    if (!g.vLines.length && !g.hLines.length) return;
+    ctx.save();
+    ctx.strokeStyle = '#2980B9';
+    ctx.lineWidth = 1.5 / zoomLevel;
+    ctx.setLineDash([6 / zoomLevel, 3 / zoomLevel]);
+    ctx.globalAlpha = 0.85;
+    for (var i = 0; i < g.vLines.length; i++) {
+      ctx.beginPath();
+      ctx.moveTo(g.vLines[i], 0);
+      ctx.lineTo(g.vLines[i], img.height);
+      ctx.stroke();
+    }
+    for (var j = 0; j < g.hLines.length; j++) {
+      ctx.beginPath();
+      ctx.moveTo(0, g.hLines[j]);
+      ctx.lineTo(img.width, g.hLines[j]);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // ── 滑鼠事件 ──
   function onMouseDown(e) {
     if (!img) return;
     if (document.getElementById('fp').classList.contains('open')) return;
@@ -48,6 +132,26 @@ var Canvas = (function() {
       return;
     }
     var p = toCanvas(e.clientX, e.clientY);
+
+    // 先判斷是否點擊既有矩形 → 進入拖曳模式
+    var boxes = App.getBoxes();
+    for (var bi = boxes.length - 1; bi >= 0; bi--) {
+      var bx = boxes[bi];
+      if (p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h) {
+        isDragging = true;
+        dragBox = bx;
+        dragOffX = p.x - bx.x;
+        dragOffY = p.y - bx.y;
+        dragOrigX = bx.x;
+        dragOrigY = bx.y;
+        dragMoved = false;
+        mc.style.cursor = 'grabbing';
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // 否則開始繪製新矩形
     startX = p.x; startY = p.y;
     drawing = true;
     curBox = { x: p.x, y: p.y, w: 0, h: 0 };
@@ -58,15 +162,37 @@ var Canvas = (function() {
     var p = toCanvas(e.clientX, e.clientY);
     var ctrlHeld = e.ctrlKey;
 
+    // 拖曳中
+    if (isDragging && dragBox) {
+      var newX = p.x - dragOffX;
+      var newY = p.y - dragOffY;
+
+      // 計算對齊
+      var g = computeGuides(newX, newY, dragBox.w, dragBox.h);
+      if (g.snapX !== null) newX = g.snapX;
+      if (g.snapY !== null) newY = g.snapY;
+
+      dragBox.x = newX;
+      dragBox.y = newY;
+      dragMoved = true;
+
+      App.redraw();
+      drawGuides(g);
+      document.getElementById('coordTxt').textContent =
+        'x:' + Math.round(newX) + ' y:' + Math.round(newY);
+      return;
+    }
+
     if (!drawing) {
-      // 游標懸停在既有矩形上時改為 pointer
-      var boxes = App.getBoxes();
       var overBox = false;
+      var boxes = App.getBoxes();
       for (var bi = 0; bi < boxes.length; bi++) {
         var bx = boxes[bi];
-        if (p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h) { overBox = true; break; }
+        if (p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h) {
+          overBox = true; break;
+        }
       }
-      mc.style.cursor = overBox ? 'pointer' : 'crosshair';
+      mc.style.cursor = overBox ? 'grab' : 'crosshair';
 
       if (ctrlHeld && lastW > 0) {
         document.getElementById('coordTxt').textContent = '⌃ Ctrl：複製上次尺寸 ' + lastW + '×' + lastH + ' px';
@@ -102,8 +228,43 @@ var Canvas = (function() {
     }
   }
 
+  // window 層級的 mousemove：讓拖曳超出 canvas 也能追蹤
+  function onWindowMouseMove(e) {
+    if (!isDragging || !dragBox || !img) return;
+    var p = toCanvas(e.clientX, e.clientY);
+    var newX = p.x - dragOffX;
+    var newY = p.y - dragOffY;
+    var g = computeGuides(newX, newY, dragBox.w, dragBox.h);
+    if (g.snapX !== null) newX = g.snapX;
+    if (g.snapY !== null) newY = g.snapY;
+    dragBox.x = newX;
+    dragBox.y = newY;
+    dragMoved = true;
+    App.redraw();
+    drawGuides(g);
+  }
+
   function onMouseUp(e) {
     if (isPanning) { isPanning = false; return; }
+
+    // 拖曳結束
+    if (isDragging) {
+      isDragging = false;
+      mc.style.cursor = 'grab';
+      if (!dragMoved) {
+        // 沒有移動 → 視為點擊，還原位置並開啟編輯
+        dragBox.x = dragOrigX;
+        dragBox.y = dragOrigY;
+        App.redraw();
+        FloatPanel.openEdit(dragBox);
+      } else {
+        // 有移動 → 更新位置
+        App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y });
+      }
+      dragBox = null;
+      return;
+    }
+
     if (!drawing || !img) return;
     drawing = false;
     var w = Math.abs(curBox.w);
@@ -112,22 +273,12 @@ var Canvas = (function() {
     var y = curBox.h < 0 ? curBox.y + curBox.h : curBox.y;
     curBox = null;
 
-    // 點擊（拖拉距離太小）→ 嘗試點擊既有矩形
     if (w < 6 || h < 6) {
       App.redraw();
-      var p = toCanvas(e.clientX, e.clientY);
-      var boxes = App.getBoxes();
-      for (var bi = boxes.length - 1; bi >= 0; bi--) {
-        var bx = boxes[bi];
-        if (p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h) {
-          FloatPanel.openEdit(bx);
-          return;
-        }
-      }
       return;
     }
 
-    // 補丁模式：第一次框選是設定來源區域
+    // 補丁模式
     if (typeof FillEngine !== 'undefined' && FillEngine.getMode() === 'patch' && FillEngine.isPatchSelecting()) {
       FillEngine.setPatchSource({ x: x, y: y, w: w, h: h });
       App.redraw();
@@ -135,6 +286,23 @@ var Canvas = (function() {
     }
 
     if (onBoxDraw) onBoxDraw(x, y, w, h);
+  }
+
+  function onWindowMouseUp(e) {
+    if (isPanning) { isPanning = false; return; }
+    if (isDragging) {
+      isDragging = false;
+      mc.style.cursor = 'grab';
+      if (!dragMoved) {
+        dragBox.x = dragOrigX;
+        dragBox.y = dragOrigY;
+        App.redraw();
+        FloatPanel.openEdit(dragBox);
+      } else {
+        App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y });
+      }
+      dragBox = null;
+    }
   }
 
   function onWheel(e) {
@@ -197,7 +365,6 @@ var Canvas = (function() {
 
   function setLastSize(w, h) { lastW = Math.round(w); lastH = Math.round(h); }
   function getLastSize() { return { w: lastW, h: lastH }; }
-
   function getCtx() { return ctx; }
   function getCanvas() { return mc; }
   function getImage() { return img; }
