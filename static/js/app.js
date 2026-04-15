@@ -60,6 +60,26 @@ var App = (function() {
   }
 
   // ── REDRAW ──
+  // 拖曳期間輕量渲染：只畫框線，跳過 FillEngine（避免 lag）
+  function fastRedraw() {
+    var img = Canvas.getImage();
+    if (!img) return;
+    var ctx = Canvas.getCtx();
+    var mc = Canvas.getCanvas();
+    var zoom = Canvas.getZoom();
+    ctx.clearRect(0, 0, mc.width, mc.height);
+    ctx.drawImage(img, 0, 0);
+    var lw = Math.max(1, 1.5 / zoom);
+    for (var i = 0; i < boxes.length; i++) {
+      var box = boxes[i];
+      var g = box.group ? Groups.getById(box.group) : null;
+      var bc = g ? g.color : '#C0392B';
+      ctx.strokeStyle = bc; ctx.lineWidth = lw; ctx.setLineDash([4/zoom, 3/zoom]);
+      ctx.strokeRect(box.x, box.y, box.w, box.h);
+      ctx.setLineDash([]);
+    }
+  }
+
   function redraw() {
     var img = Canvas.getImage();
     if (!img) return;
@@ -503,6 +523,7 @@ var App = (function() {
   return {
     init: init,
     redraw: redraw,
+    fastRedraw: fastRedraw,
     renderPriceList: renderPriceList,
     toggleEditList: toggleEditList,
     addBox: addBox,

@@ -123,7 +123,7 @@ var Canvas = (function() {
   // ── 滑鼠事件 ──
   function onMouseDown(e) {
     if (!img) return;
-    // Shift 平移優先，不受 float panel 狀態影響
+    // Shift / Alt / 中鍵 → 平移（不受 float panel 影響）
     if (e.shiftKey || e.button === 1 || e.altKey) {
       isPanning = true;
       panSX = e.clientX; panSY = e.clientY;
@@ -132,28 +132,32 @@ var Canvas = (function() {
       e.preventDefault();
       return;
     }
-    if (document.getElementById('fp').classList.contains('open')) return;
+
     var p = toCanvas(e.clientX, e.clientY);
 
-    // 先判斷是否點擊既有矩形 → 進入拖曳模式
-    var boxes = App.getBoxes();
-    for (var bi = boxes.length - 1; bi >= 0; bi--) {
-      var bx = boxes[bi];
-      if (p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h) {
-        isDragging = true;
-        dragBox = bx;
-        dragOffX = p.x - bx.x;
-        dragOffY = p.y - bx.y;
-        dragOrigX = bx.x;
-        dragOrigY = bx.y;
-        dragMoved = false;
-        mc.style.cursor = 'grabbing';
-        e.preventDefault();
-        return;
+    // ⌘ Command + 點擊既有矩形 → 拖曳移動模式
+    if (e.metaKey) {
+      var boxes = App.getBoxes();
+      for (var bi = boxes.length - 1; bi >= 0; bi--) {
+        var bx = boxes[bi];
+        if (p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h) {
+          isDragging = true;
+          dragBox = bx;
+          dragOffX = p.x - bx.x;
+          dragOffY = p.y - bx.y;
+          dragOrigX = bx.x;
+          dragOrigY = bx.y;
+          dragMoved = false;
+          mc.style.cursor = 'grabbing';
+          e.preventDefault();
+          return;
+        }
       }
     }
 
-    // 否則開始繪製新矩形
+    if (document.getElementById('fp').classList.contains('open')) return;
+
+    // 普通點擊：小移動 = 點擊編輯（mouseup 觸發），大移動 = 繪製新框
     startX = p.x; startY = p.y;
     drawing = true;
     curBox = { x: p.x, y: p.y, w: 0, h: 0 };
@@ -192,7 +196,7 @@ var Canvas = (function() {
       dragBox.y = newY;
       dragMoved = true;
 
-      App.redraw();
+      App.fastRedraw();
       drawGuides(g);
       document.getElementById('coordTxt').textContent =
         'x:' + Math.round(newX) + ' y:' + Math.round(newY);
@@ -209,7 +213,11 @@ var Canvas = (function() {
           overBox = true; break;
         }
       }
-      mc.style.cursor = overBox ? 'grab' : 'crosshair';
+      if (e.metaKey) {
+        mc.style.cursor = overBox ? 'move' : 'crosshair';
+      } else {
+        mc.style.cursor = overBox ? 'pointer' : 'crosshair';
+      }
 
       if (ctrlHeld && lastW > 0) {
         document.getElementById('coordTxt').textContent = '⌃ Ctrl：複製上次尺寸 ' + lastW + '×' + lastH + ' px';
@@ -264,7 +272,7 @@ var Canvas = (function() {
     dragBox.x = newX;
     dragBox.y = newY;
     dragMoved = true;
-    App.redraw();
+    App.fastRedraw();
     drawGuides(g);
   }
 
@@ -299,6 +307,16 @@ var Canvas = (function() {
 
     if (w < 6 || h < 6) {
       App.redraw();
+      // 小移動 = 點擊，嘗試開啟編輯
+      var p2 = toCanvas(e.clientX, e.clientY);
+      var boxes2 = App.getBoxes();
+      for (var bi2 = boxes2.length - 1; bi2 >= 0; bi2--) {
+        var bx2 = boxes2[bi2];
+        if (p2.x >= bx2.x && p2.x <= bx2.x + bx2.w && p2.y >= bx2.y && p2.y <= bx2.y + bx2.h) {
+          FloatPanel.openEdit(bx2);
+          return;
+        }
+      }
       return;
     }
 
