@@ -145,8 +145,8 @@ var Canvas = (function() {
   // ── 滑鼠事件 ──
   function onMouseDown(e) {
     if (!img) return;
-    // Ctrl + Space / Alt / 中鍵 → 平移（不受 float panel 影響）
-    if ((e.ctrlKey && spaceHeld) || e.button === 1 || e.altKey) {
+    // Space / 中鍵 → 平移（不受 float panel 影響）
+    if (spaceHeld || e.button === 1) {
       isPanning = true;
       panSX = e.clientX; panSY = e.clientY;
       panOX = panX; panOY = panY;
@@ -157,8 +157,8 @@ var Canvas = (function() {
 
     var p = toCanvas(e.clientX, e.clientY);
 
-    // ⌘ Command + 點擊既有矩形 → 拖曳移動模式
-    if (e.metaKey) {
+    // Alt / Option + 點擊既有矩形 → 拖曳移動模式
+    if (e.altKey) {
       var boxes = App.getBoxes();
       for (var bi = boxes.length - 1; bi >= 0; bi--) {
         var bx = boxes[bi];
@@ -190,8 +190,8 @@ var Canvas = (function() {
     var p = toCanvas(e.clientX, e.clientY);
     var shiftHeld = e.shiftKey;
 
-    // Ctrl + Space 游標（平移提示）
-    if (e.ctrlKey && spaceHeld && !isPanning && !isDragging && !drawing) {
+    // Space 游標（平移提示）
+    if (spaceHeld && !isPanning && !isDragging && !drawing) {
       mc.style.cursor = 'grab';
     }
 
@@ -226,7 +226,7 @@ var Canvas = (function() {
     }
 
     if (!drawing) {
-      if (e.ctrlKey && spaceHeld) { mc.style.cursor = 'grab'; return; }
+      if (spaceHeld) { mc.style.cursor = 'grab'; return; }
       var overBox = false;
       var boxes = App.getBoxes();
       for (var bi = 0; bi < boxes.length; bi++) {
@@ -235,7 +235,7 @@ var Canvas = (function() {
           overBox = true; break;
         }
       }
-      if (e.metaKey) {
+      if (e.altKey) {
         mc.style.cursor = overBox ? 'move' : 'crosshair';
       } else {
         mc.style.cursor = overBox ? 'pointer' : 'crosshair';
@@ -299,7 +299,7 @@ var Canvas = (function() {
   }
 
   function onMouseUp(e) {
-    if (isPanning) { isPanning = false; mc.style.cursor = (e.ctrlKey && spaceHeld) ? 'grab' : 'crosshair'; return; }
+    if (isPanning) { isPanning = false; mc.style.cursor = spaceHeld ? 'grab' : 'crosshair'; return; }
 
     // 拖曳結束
     if (isDragging) {
@@ -353,7 +353,7 @@ var Canvas = (function() {
   }
 
   function onWindowMouseUp(e) {
-    if (isPanning && !isDragging) { isPanning = false; mc.style.cursor = (e.ctrlKey && spaceHeld) ? 'grab' : 'crosshair'; return; }
+    if (isPanning && !isDragging) { isPanning = false; mc.style.cursor = spaceHeld ? 'grab' : 'crosshair'; return; }
     if (isDragging) {
       isDragging = false;
       mc.style.cursor = 'grab';

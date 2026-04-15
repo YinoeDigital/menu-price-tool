@@ -17,11 +17,11 @@ var FloatPanel = (function() {
   var stickyTextAlign = 'center'; // 'left' | 'center' | 'right'
 
   function init() {
-    document.getElementById('fpVal').addEventListener('input', function() {
-      updateNewPrice();
-      this.classList.remove('err');
-    });
-    document.getElementById('fpVal').addEventListener('keydown', function(e) {
+    var valEl = document.getElementById('fpVal');
+    // input: 即時更新（每次按鍵）；change: 補捉 spinner 點擊、貼上等情境
+    valEl.addEventListener('input',  function() { updateNewPrice(); this.classList.remove('err'); });
+    valEl.addEventListener('change', function() { updateNewPrice(); this.classList.remove('err'); });
+    valEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') confirm();
       if (e.key === 'Escape') reqClose();
     });
