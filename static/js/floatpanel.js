@@ -19,27 +19,25 @@ var FloatPanel = (function() {
       if (e.key === 'Enter') confirm();
       if (e.key === 'Escape') reqClose();
     });
-    document.getElementById('fpFontSize').addEventListener('input', function() {
-      var v = parseInt(this.value);
-      document.getElementById('fpFontBadge').textContent = (v > 0) ? v + 'px' : '自動';
+    // 字體顏色：雙擊還原自動
+    document.getElementById('fpFontColor').addEventListener('dblclick', function() {
+      FloatPanel.resetColor();
     });
   }
 
   function setColorUI(color) {
     var isAuto = !color;
     document.getElementById('fpFontColor').value = color || '#3D1A10';
-    document.getElementById('fpFontColor').style.opacity = isAuto ? '0.35' : '1';
-    document.getElementById('fpColorAuto').style.background = isAuto ? 'var(--red-lt)' : 'var(--cream)';
-    document.getElementById('fpColorAuto').style.color = isAuto ? 'var(--red)' : 'var(--gmd)';
-    document.getElementById('fpColorAuto').style.borderColor = isAuto ? 'var(--red)' : 'var(--glt)';
+    document.getElementById('fpFontColor').style.opacity = isAuto ? '0.3' : '1';
+    var lbl = document.getElementById('fpColorLabel');
+    if (lbl) { lbl.textContent = isAuto ? '自動' : color; lbl.style.color = isAuto ? 'var(--gmd)' : color; }
   }
 
   function onColorInput() {
     stickyFontColor = document.getElementById('fpFontColor').value;
     document.getElementById('fpFontColor').style.opacity = '1';
-    document.getElementById('fpColorAuto').style.background = 'var(--cream)';
-    document.getElementById('fpColorAuto').style.color = 'var(--gmd)';
-    document.getElementById('fpColorAuto').style.borderColor = 'var(--glt)';
+    var lbl = document.getElementById('fpColorLabel');
+    if (lbl) { lbl.textContent = stickyFontColor; lbl.style.color = stickyFontColor; }
   }
 
   function resetColor() {
@@ -95,7 +93,6 @@ var FloatPanel = (function() {
     document.getElementById('fpSub').textContent = '框選區域：' + Math.round(w) + '×' + Math.round(h) + ' px';
     document.getElementById('fpSz').textContent = Math.round(w) + '×' + Math.round(h) + ' px';
     document.getElementById('fpFontSize').value = stickyFontSize > 0 ? stickyFontSize : '';
-    document.getElementById('fpFontBadge').textContent = stickyFontSize > 0 ? stickyFontSize + 'px' : '自動';
     setColorUI(stickyFontColor);
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
@@ -121,7 +118,6 @@ var FloatPanel = (function() {
     document.getElementById('fpSz').textContent = Math.round(box.w) + '×' + Math.round(box.h) + ' px';
     var bfs = box.fontSize || 0;
     document.getElementById('fpFontSize').value = bfs > 0 ? bfs : '';
-    document.getElementById('fpFontBadge').textContent = bfs > 0 ? bfs + 'px' : '自動';
     setColorUI(box.fontColor || stickyFontColor || '');
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;

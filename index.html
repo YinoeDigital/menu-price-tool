@@ -457,25 +457,19 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
             <div>
               <label class="fp-lbl">字體大小（px）</label>
-              <div style="display:flex;gap:5px;align-items:center;">
-                <input type="number" id="fpFontSize" placeholder="自動" min="8" max="300" style="flex:1;min-width:0;">
-                <div class="pct-badge" id="fpFontBadge" style="min-width:38px;font-size:11px;padding:7px 5px;">自動</div>
-              </div>
+              <input type="number" id="fpFontSize" placeholder="自動" min="8" max="300" style="width:100%;">
             </div>
             <div>
               <label class="fp-lbl">字體顏色</label>
-              <div style="display:flex;gap:5px;align-items:center;">
+              <div style="display:flex;gap:6px;align-items:center;">
                 <input type="color" id="fpFontColor" value="#3D1A10"
-                  style="width:34px;height:32px;border:1.5px solid var(--glt);border-radius:6px;padding:2px 2px;cursor:pointer;background:none;flex-shrink:0;"
+                  style="width:40px;height:34px;border:1.5px solid var(--glt);border-radius:6px;padding:2px;cursor:pointer;background:none;flex-shrink:0;"
                   oninput="FloatPanel.onColorInput()">
-                <button id="fpColorAuto" onclick="FloatPanel.resetColor()"
-                  style="flex:1;font-size:11px;padding:6px 4px;cursor:pointer;border:1.5px solid var(--glt);border-radius:6px;background:var(--cream);color:var(--gmd);font-family:inherit;white-space:nowrap;">
-                  自動
-                </button>
+                <span id="fpColorLabel" style="font-size:11px;color:var(--gmd);">自動</span>
               </div>
             </div>
           </div>
-          <div style="font-size:11px;color:var(--gmd);margin-top:4px;">字體大小留空=自動依矩形計算・顏色「自動」依背景亮度</div>
+          <div style="font-size:11px;color:var(--gmd);margin-top:4px;">字體大小留空=自動依矩形計算・顏色點選後固定，再點一下還原自動</div>
           <div class="fp-tip">
             <div class="fp-tr">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
