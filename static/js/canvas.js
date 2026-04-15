@@ -19,7 +19,8 @@ var Canvas = (function() {
   var dragOffX = 0, dragOffY = 0;
   var dragOrigX = 0, dragOrigY = 0;
   var dragMoved = false;
-  var SNAP = 8; // 吸附閾值（圖片像素）
+  var SNAP_X = 8; // X 軸吸附閾值（左右對齊用，8px）
+  var SNAP_Y = 2; // Y 軸吸附閾值（極小，避免意外垂直吸附）
 
   // ── 鍵盤狀態追蹤 ──
   var spaceHeld = false;
@@ -70,7 +71,7 @@ var Canvas = (function() {
   // ── 對齊輔助計算 ──
   function computeGuides(x, y, w, h) {
     var boxes = App.getBoxes();
-    var bestDX = SNAP, bestDY = SNAP;
+    var bestDX = SNAP_X, bestDY = SNAP_Y;
     var snapX = null, snapY = null;
     var vLines = [], hLines = [];
 

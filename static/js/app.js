@@ -121,24 +121,33 @@ var App = (function() {
         var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
         var ns = String(nv);
         var bls = (box.letterSpacing || 0) + 'px';
-        var bWeight = box.bold ? 'bold ' : '';
+        var bStyle = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
         var bAlign = box.textAlign || 'center';
         if ('letterSpacing' in ctx) ctx.letterSpacing = bls;
         if (box.orient === 'vertical') {
           var ch = box.h / ns.length;
           var fs = box.fontSize > 0 ? box.fontSize : Math.min(ch * 0.88, box.w * 0.92);
-          ctx.font = bWeight + Math.round(fs) + "px '" + font + "',serif";
+          ctx.font = bStyle + Math.round(fs) + "px '" + font + "',serif";
           ctx.fillStyle = tc; ctx.textAlign = 'center';
           for (var ci = 0; ci < ns.length; ci++) {
             ctx.fillText(ns[ci], box.x + box.w / 2, box.y + ch * (ci + 0.8));
           }
         } else {
           var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
-          ctx.font = bWeight + Math.round(fs2) + "px '" + font + "',serif";
+          ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
           ctx.fillStyle = tc; ctx.textBaseline = 'middle';
           var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
           ctx.textAlign = bAlign;
           ctx.fillText(String(nv), tx, box.y + box.h / 2);
+          // 雙刪除線
+          if (box.strikethrough) {
+            var tw = ctx.measureText(String(nv)).width;
+            var lx0 = bAlign === 'left' ? tx : bAlign === 'right' ? tx - tw : tx - tw / 2;
+            var lw2 = Math.max(1, fs2 * 0.07);
+            ctx.strokeStyle = tc; ctx.lineWidth = lw2; ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(lx0, box.y + box.h / 2 - fs2 * 0.12); ctx.lineTo(lx0 + tw, box.y + box.h / 2 - fs2 * 0.12); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(lx0, box.y + box.h / 2 + fs2 * 0.08); ctx.lineTo(lx0 + tw, box.y + box.h / 2 + fs2 * 0.08); ctx.stroke();
+          }
           ctx.textBaseline = 'alphabetic';
         }
         if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
@@ -311,24 +320,32 @@ var App = (function() {
       var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
       var ns = String(nv);
       var bls2 = (box.letterSpacing || 0) + 'px';
-      var bWeight2 = box.bold ? 'bold ' : '';
+      var bStyle2 = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
       var bAlign2 = box.textAlign || 'center';
       if ('letterSpacing' in oc) oc.letterSpacing = bls2;
       if (box.orient === 'vertical') {
         var ch = box.h / ns.length;
         var fs = box.fontSize > 0 ? box.fontSize : Math.min(ch * 0.88, box.w * 0.92);
-        oc.font = bWeight2 + Math.round(fs) + "px '" + font + "',serif";
+        oc.font = bStyle2 + Math.round(fs) + "px '" + font + "',serif";
         oc.fillStyle = tc; oc.textAlign = 'center';
         for (var ci = 0; ci < ns.length; ci++) {
           oc.fillText(ns[ci], box.x + box.w / 2, box.y + ch * (ci + 0.8));
         }
       } else {
         var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
-        oc.font = bWeight2 + Math.round(fs2) + "px '" + font + "',serif";
+        oc.font = bStyle2 + Math.round(fs2) + "px '" + font + "',serif";
         oc.fillStyle = tc; oc.textBaseline = 'middle';
         var tx2 = bAlign2 === 'left' ? box.x + 4 : bAlign2 === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
         oc.textAlign = bAlign2;
         oc.fillText(String(nv), tx2, box.y + box.h / 2);
+        if (box.strikethrough) {
+          var tw2 = oc.measureText(String(nv)).width;
+          var lx2 = bAlign2 === 'left' ? tx2 : bAlign2 === 'right' ? tx2 - tw2 : tx2 - tw2 / 2;
+          var lw3 = Math.max(1, fs2 * 0.07);
+          oc.strokeStyle = tc; oc.lineWidth = lw3; oc.setLineDash([]);
+          oc.beginPath(); oc.moveTo(lx2, box.y + box.h / 2 - fs2 * 0.12); oc.lineTo(lx2 + tw2, box.y + box.h / 2 - fs2 * 0.12); oc.stroke();
+          oc.beginPath(); oc.moveTo(lx2, box.y + box.h / 2 + fs2 * 0.08); oc.lineTo(lx2 + tw2, box.y + box.h / 2 + fs2 * 0.08); oc.stroke();
+        }
         oc.textBaseline = 'alphabetic';
       }
       if ('letterSpacing' in oc) oc.letterSpacing = '0px';

@@ -12,6 +12,8 @@ var FloatPanel = (function() {
   var stickyFontFamily = 'Noto Serif TC';
   var stickyLetterSpacing = 0; // px，0 = 預設
   var stickyBold = false;
+  var stickyItalic = false;
+  var stickyStrikethrough = false;
   var stickyTextAlign = 'center'; // 'left' | 'center' | 'right'
 
   function init() {
@@ -108,6 +110,8 @@ var FloatPanel = (function() {
     document.getElementById('fpLetterSpacing').value = stickyLetterSpacing !== 0 ? stickyLetterSpacing : '';
     setColorUI(stickyFontColor);
     setBoldUI(stickyBold);
+    setItalicUI(stickyItalic);
+    setStrikethroughUI(stickyStrikethrough);
     setAlignUI(stickyTextAlign);
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
@@ -138,6 +142,8 @@ var FloatPanel = (function() {
     document.getElementById('fpLetterSpacing').value = bls !== 0 ? bls : '';
     setColorUI(box.fontColor || stickyFontColor || '');
     setBoldUI(box.bold !== undefined ? box.bold : stickyBold);
+    setItalicUI(box.italic !== undefined ? box.italic : stickyItalic);
+    setStrikethroughUI(box.strikethrough !== undefined ? box.strikethrough : stickyStrikethrough);
     setAlignUI(box.textAlign || stickyTextAlign);
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
@@ -196,9 +202,13 @@ var FloatPanel = (function() {
     var letterSpacing = isNaN(lsInput) ? 0 : lsInput;
     stickyLetterSpacing = letterSpacing;
 
-    // 讀取粗體
+    // 讀取粗體 / 斜體 / 雙刪除線
     var bold = document.getElementById('fpBold').classList.contains('active');
     stickyBold = bold;
+    var italic = document.getElementById('fpItalic').classList.contains('active');
+    stickyItalic = italic;
+    var strikethrough = document.getElementById('fpStrike').classList.contains('active');
+    stickyStrikethrough = strikethrough;
 
     // 讀取文字對齊
     var textAlign = stickyTextAlign;
@@ -217,7 +227,7 @@ var FloatPanel = (function() {
         value: v, orient: fpOrient, group: fpGroup,
         fontSize: fontSize, newValue: newValue, fontColor: fontColor,
         fontFamily: stickyFontFamily, letterSpacing: letterSpacing,
-        bold: bold, textAlign: textAlign
+        bold: bold, italic: italic, strikethrough: strikethrough, textAlign: textAlign
       });
       document.getElementById('fp').querySelector('.fp-title').textContent = '輸入價格資訊';
       App.setSt('已更新價格：' + v + ' → ' + newValue);
@@ -229,7 +239,7 @@ var FloatPanel = (function() {
         value: v, orient: fpOrient, group: fpGroup,
         fontSize: fontSize, newValue: newValue, fontColor: fontColor,
         fontFamily: stickyFontFamily, letterSpacing: letterSpacing,
-        bold: bold, textAlign: textAlign,
+        bold: bold, italic: italic, strikethrough: strikethrough, textAlign: textAlign,
         fillMode: currentMode,
         patchSource: (currentMode === 'patch' && typeof FillEngine !== 'undefined') ? FillEngine.getPatchSource() : null
       });
@@ -266,11 +276,28 @@ var FloatPanel = (function() {
   function setBoldUI(b) {
     document.getElementById('fpBold').classList.toggle('active', !!b);
   }
-
   function toggleBold() {
     var btn = document.getElementById('fpBold');
     btn.classList.toggle('active');
     stickyBold = btn.classList.contains('active');
+  }
+
+  function setItalicUI(b) {
+    document.getElementById('fpItalic').classList.toggle('active', !!b);
+  }
+  function toggleItalic() {
+    var btn = document.getElementById('fpItalic');
+    btn.classList.toggle('active');
+    stickyItalic = btn.classList.contains('active');
+  }
+
+  function setStrikethroughUI(b) {
+    document.getElementById('fpStrike').classList.toggle('active', !!b);
+  }
+  function toggleStrikethrough() {
+    var btn = document.getElementById('fpStrike');
+    btn.classList.toggle('active');
+    stickyStrikethrough = btn.classList.contains('active');
   }
 
   function setAlignUI(a) {
@@ -303,6 +330,8 @@ var FloatPanel = (function() {
     resetColor: resetColor,
     onFontChange: onFontChange,
     toggleBold: toggleBold,
+    toggleItalic: toggleItalic,
+    toggleStrikethrough: toggleStrikethrough,
     setAlign: setAlign,
     getGroup: getGroup,
     getStickyFontSize: getStickyFontSize

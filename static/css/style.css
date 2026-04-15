@@ -478,6 +478,26 @@ select:focus,input:focus{border-color:var(--red);}
 .fp-tr svg{flex-shrink:0;margin-top:2px;stroke:var(--red);}
 .fp-ft{padding:13px 15px;border-top:1px solid var(--glt);display:flex;gap:8px;flex-shrink:0;}
 
+/* ── 字樣設定卡片 ── */
+.fp-card{
+  border:1px solid var(--glt);border-radius:var(--r);
+  padding:10px 12px;background:var(--cream);
+  display:flex;flex-direction:column;gap:8px;
+}
+.fp-card-hd{
+  font-size:10px;font-weight:700;color:var(--gmd);
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.fp-2col{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;}
+.fp-fmt-btn{
+  flex:1;height:34px;border-radius:var(--r);font-size:13px;
+  border:1.5px solid var(--glt);background:var(--wh);color:var(--gdk);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-family:Georgia,serif;transition:all .15s;
+}
+.fp-fmt-btn:hover{border-color:var(--red);color:var(--red);}
+.fp-fmt-btn.active{background:var(--red-lt);border-color:var(--red);color:var(--red);}
+
 /* ── CONFIRM DIALOG ── */
 .cdov{
   position:fixed;inset:0;background:rgba(0,0,0,.42);

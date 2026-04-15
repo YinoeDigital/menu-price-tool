@@ -456,48 +456,54 @@
               </button>
             </div>
           </div>
-          <div>
-            <label class="fp-lbl">字型</label>
+          <!-- ── 字樣設定卡片 ── -->
+          <div class="fp-card">
+            <div class="fp-card-hd">字樣設定</div>
+            <!-- 字型（全寬） -->
             <select id="fpFontSel" onchange="FloatPanel.onFontChange()">
-              <option value="Noto Serif TC">Noto Serif TC（明體，適合日式）</option>
-              <option value="Noto Sans TC">Noto Sans TC（黑體，現代風）</option>
+              <option value="Noto Serif TC">Noto Serif TC（明體）</option>
+              <option value="Noto Sans TC">Noto Sans TC（黑體）</option>
               <option value="Ma Shan Zheng">馬善政（毛筆手寫）</option>
               <option value="Liu Jian Mao Cao">劉建毛草（草書）</option>
               <option value="Long Cang">龍藏（手寫風）</option>
               <option value="ZCOOL XiaoWei">站酷小薇（優雅）</option>
-              <option value="serif">襯線體（通用）</option>
-              <option value="sans-serif">無襯線（通用）</option>
+              <option value="serif">襯線體</option>
+              <option value="sans-serif">無襯線體</option>
             </select>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 10px;">
-            <div>
-              <label class="fp-lbl">字體大小（px）</label>
-              <input type="number" id="fpFontSize" placeholder="自動" min="8" max="300" style="width:100%;">
-            </div>
-            <div>
-              <label class="fp-lbl">字體間距（px）</label>
-              <input type="number" id="fpLetterSpacing" placeholder="0" min="-10" max="50" style="width:100%;">
-            </div>
-            <div>
-              <label class="fp-lbl">字體顏色</label>
-              <div style="display:flex;gap:6px;align-items:center;">
-                <input type="color" id="fpFontColor" value="#3D1A10"
-                  style="width:40px;height:34px;border:1.5px solid var(--glt);border-radius:6px;padding:2px;cursor:pointer;background:none;flex-shrink:0;"
-                  oninput="FloatPanel.onColorInput()">
-                <span id="fpColorLabel" style="font-size:11px;color:var(--gmd);">自動</span>
+            <!-- 大小 | 間距 -->
+            <div class="fp-2col">
+              <div>
+                <label class="fp-lbl">大小（px）</label>
+                <input type="number" id="fpFontSize" placeholder="自動" min="8" max="300" style="width:100%;">
+              </div>
+              <div>
+                <label class="fp-lbl">間距（px）</label>
+                <input type="number" id="fpLetterSpacing" placeholder="0" min="-10" max="50" style="width:100%;">
               </div>
             </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;">
-            <div>
-              <label class="fp-lbl">粗體</label>
-              <button class="fob" id="fpBold" onclick="FloatPanel.toggleBold()" style="width:100%;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
-                Bold
-              </button>
+            <!-- 顏色 | 格式 B/I/S -->
+            <div class="fp-2col">
+              <div>
+                <label class="fp-lbl">顏色</label>
+                <div style="display:flex;gap:6px;align-items:center;height:34px;">
+                  <input type="color" id="fpFontColor" value="#3D1A10"
+                    style="width:34px;height:34px;border:1.5px solid var(--glt);border-radius:6px;padding:2px;cursor:pointer;background:none;flex-shrink:0;"
+                    oninput="FloatPanel.onColorInput()">
+                  <span id="fpColorLabel" style="font-size:11px;color:var(--gmd);">自動</span>
+                </div>
+              </div>
+              <div>
+                <label class="fp-lbl">格式</label>
+                <div style="display:flex;gap:4px;">
+                  <button class="fp-fmt-btn" id="fpBold" onclick="FloatPanel.toggleBold()" title="粗體"><b>B</b></button>
+                  <button class="fp-fmt-btn" id="fpItalic" onclick="FloatPanel.toggleItalic()" title="斜體"><i>I</i></button>
+                  <button class="fp-fmt-btn" id="fpStrike" onclick="FloatPanel.toggleStrikethrough()" title="雙刪除線"><span style="text-decoration:line-through;text-decoration-style:double;">S</span></button>
+                </div>
+              </div>
             </div>
+            <!-- 對齊 -->
             <div>
-              <label class="fp-lbl">文字對齊</label>
+              <label class="fp-lbl">對齊</label>
               <div style="display:flex;gap:5px;">
                 <button class="fob fp-align-btn" data-align="left" onclick="FloatPanel.setAlign('left')" style="flex:1;" title="靠左">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
