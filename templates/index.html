@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>菜單價格調整工具</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sb" id="sb">
+    <div class="sb-hd">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" style="flex-shrink:0">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+      </svg>
+      <div class="sb-hd-txt">
+        <h1>菜單價格調整工具</h1>
+        <p>框選定位・智慧覆蓋・快速輸出</p>
+      </div>
+      <button class="sbtog" onclick="App.toggleSB()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Collapsed hint -->
+    <div class="sb-hint">
+      <div class="hi-ic" onclick="document.getElementById('fi').click()" title="上傳菜單">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="hi-div"></div>
+      <div class="hi-ic" onclick="App.showTab('lib')" title="菜單庫">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+      </div>
+      <div class="hi-ic" onclick="App.saveToLib()" title="儲存至菜單庫">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="sb-tabs">
+      <button class="sb-tab active" id="tab-edit" onclick="App.showTab('edit')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        編輯
+      </button>
+      <button class="sb-tab" id="tab-batch" onclick="App.showTab('batch')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        批次
+      </button>
+      <button class="sb-tab" id="tab-lib" onclick="App.showTab('lib')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        菜單庫
+      </button>
+    </div>
+
+    <div class="sb-body">
+
+      <!-- ── 編輯 pane ── -->
+      <div class="tab-pane active" id="pane-edit">
+
+        <div>
+          <div class="sec-lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            上傳菜單
+          </div>
+          <div class="upload-zone" onclick="document.getElementById('fi').click()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <div class="uz-lbl" id="ulbl">點擊選擇圖片</div>
+            <div class="uz-sub">支援 JPG・PNG・WEBP</div>
+          </div>
+          <input type="file" id="fi" accept="image/*" style="display:none">
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <div class="sec-lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
+            </svg>
+            字型設定
+          </div>
+          <select id="fontSel">
+            <option value="Noto Serif TC">Noto Serif TC（明體，適合日式）</option>
+            <option value="Noto Sans TC">Noto Sans TC（黑體，現代風）</option>
+            <option value="Ma Shan Zheng">馬善政（毛筆手寫）</option>
+            <option value="Liu Jian Mao Cao">劉建毛草（草書）</option>
+            <option value="Long Cang">龍藏（手寫風）</option>
+            <option value="ZCOOL XiaoWei">站酷小薇（優雅）</option>
+            <option value="serif">襯線體（通用）</option>
+            <option value="sans-serif">無襯線（通用）</option>
+          </select>
+        </div>
+
+
+        <div>
+          <div class="sec-lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            全域調整百分比
+          </div>
+          <div class="pct-row">
+            <input type="number" id="pctIn" value="35" placeholder="例：35 或 -10">
+            <div class="pct-badge" id="pctBadge">+35%</div>
+          </div>
+          <div style="font-size:11px;color:var(--gmd);margin-top:5px;">未指定群組的框選套用此數值</div>
+        </div>
+
+        <!-- ── 填色方案 ── -->
+        <div class="divider"></div>
+        <div>
+          <div class="sec-lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            覆蓋填色方案
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button class="fill-mode-btn active" id="btn-autofill" onclick="FillEngine.setMode('autofill')" title="自動取樣矩形周圍背景色填色，並柔化邊緣">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 12s1.5-3 4-3 4 3 4 3-1.5 3-4 3-4-3-4-3z"/>
+                <circle cx="12" cy="12" r="1" fill="currentColor"/>
+              </svg>
+              <span>智能填色</span>
+            </button>
+            <button class="fill-mode-btn" id="btn-patch" onclick="FillEngine.setMode('patch')" title="從背景空白處取樣紋理，無縫覆蓋到價格位置">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <path d="M14 17h7M17 14v7"/>
+              </svg>
+              <span>紋理補丁</span>
+            </button>
+          </div>
+          <div id="autofill-hint" style="font-size:11px;color:var(--gmd);background:var(--cream);border-radius:var(--r);padding:9px 11px;border:1px solid var(--glt);line-height:1.7;">
+            <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <b style="color:var(--gdk);">環狀取樣 + 邊緣羽化</b>
+            </div>
+            自動偵測矩形周邊 6px 環狀像素的平均色填色，邊緣加入羽化，適合背景色均勻的菜單。
+            <div style="display:flex;align-items:center;gap:7px;margin-top:8px;">
+              <span style="white-space:nowrap;">羽化強度</span>
+              <input type="range" min="0" max="6" value="2" style="flex:1;height:4px;" oninput="FillEngine.setFeather('autofill', this.value); document.getElementById('autofill-feather-val').textContent = this.value + 'px'">
+              <span id="autofill-feather-val" style="color:var(--red);min-width:26px;">2px</span>
+            </div>
+          </div>
+          <div id="patch-hint" style="display:none;font-size:11px;color:var(--gmd);background:var(--cream);border-radius:var(--r);padding:9px 11px;border:1px solid var(--glt);line-height:1.7;">
+            <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <b style="color:var(--gdk);">仿製印章 + Alpha 遮罩</b>
+            </div>
+            先框選空白背景作為<b style="color:var(--red);">來源區域</b>，再框選要蓋掉的價格，系統將紋理複製過去並柔化邊緣，適合有紙張紋理或漸層的背景。
+            <div style="margin-top:8px;">
+              <button class="btn btn-outline" style="font-size:11px;padding:6px 10px;" onclick="FillEngine.setPatchSelecting(true); App.setSt('請在空白背景處拖拉框選來源紋理區域');">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                點此選取來源區域
+              </button>
+              <img id="patch-source-preview" src="" alt="來源預覽" style="display:none;width:100%;margin-top:6px;border-radius:4px;border:1px solid var(--glt);">
+              <div style="display:flex;align-items:center;gap:7px;margin-top:7px;">
+                <span style="white-space:nowrap;">羽化強度</span>
+                <input type="range" min="0" max="12" value="5" style="flex:1;height:4px;" oninput="FillEngine.setFeather('patch', this.value); document.getElementById('patch-feather-val').textContent = this.value + 'px'">
+                <span id="patch-feather-val" style="color:var(--red);min-width:26px;">5px</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <div class="sec-lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            最近操作紀錄
+          </div>
+          <div class="hist-list" id="histList"></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <button class="btn btn-ghost" onclick="App.saveToLib()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+            </svg>
+            儲存至菜單庫
+          </button>
+          <button class="btn btn-ghost" onclick="App.saveJSON()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <polyline points="21 15 21 19 3 19 3 15"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            匯出 JSON
+          </button>
+          <button class="btn btn-ghost" onclick="document.getElementById('ji').click()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <polyline points="21 15 21 19 3 19 3 15"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="17"/>
+            </svg>
+            載入 JSON
+          </button>
+          <input type="file" id="ji" accept=".json" style="display:none">
+        </div>
+
+      </div><!-- /pane-edit -->
+
+      <!-- ── 批次 pane ── -->
+      <div class="tab-pane" id="pane-batch">
+        <div>
+          <div class="sec-lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            批次百分比說明
+          </div>
+          <div style="font-size:12px;color:var(--gmd);background:var(--cream);border-radius:var(--r);padding:10px;border:1px solid var(--glt);line-height:1.7;">
+            將框選分組，每組套用不同漲幅。<br>框選時在面板內指定群組。
+          </div>
+        </div>
+        <div>
+          <div class="sec-lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 8 0v2"/>
+            </svg>
+            群組管理
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <input type="text" id="newGrpName" placeholder="輸入群組名稱" style="flex:1;padding:7px 9px;font-size:12px;">
+            <button class="btn btn-primary btn-sm" style="width:auto;padding:7px 11px;" onclick="App.addGroup()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="group-list" id="groupList"></div>
+        </div>
+      </div>
+
+      <!-- ── 菜單庫 pane ── -->
+      <div class="tab-pane" id="pane-lib">
+        <div>
+          <div class="sec-lbl" style="justify-content:space-between;">
+            <span style="display:flex;align-items:center;gap:5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              已儲存菜單
+            </span>
+            <span class="tag-red" id="libCnt">0 筆</span>
+          </div>
+          <div class="lib-list" id="libList"></div>
+        </div>
+        <div style="font-size:11px;color:var(--gmd);line-height:1.7;background:var(--cream);border-radius:var(--r);padding:10px;border:1px solid var(--glt);">
+          圖片小於 3MB 時自動存入縮圖可直接還原。<br>
+          圖片較大時僅儲存座標，載入時需重新上傳原始圖片。
+        </div>
+      </div>
+
+    </div><!-- /sb-body -->
+  </div><!-- /sb -->
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="tb-btn active" id="tbSel">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <path d="M5 3l14 9-7 1-4 7z"/>
+        </svg>
+        框選模式
+      </button>
+      <button class="tb-btn" id="tbPrev" onclick="App.togglePreview()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+        預覽效果
+      </button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" onclick="App.clearAll()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+        清除全部
+      </button>
+      <div class="tb-sep"></div>
+      <div class="zoom-ctrl">
+        <button class="zb" onclick="Canvas.zoom(-0.1)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </button>
+        <span class="zoom-val" id="zoomVal">100%</span>
+        <button class="zb" onclick="Canvas.zoom(0.1)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </button>
+        <button class="zb" onclick="Canvas.resetZoom()" title="重設縮放">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+          </svg>
+        </button>
+      </div>
+      <div class="tb-right">
+        <button class="btn btn-outline" id="btnEditList" style="width:auto;padding:7px 14px;font-size:13px;" onclick="App.toggleEditList()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          編輯清單
+          <span class="tb-cnt" id="pcnt">0</span>
+        </button>
+        <button class="btn btn-primary" style="width:auto;padding:7px 14px;font-size:13px;" onclick="App.exportImage()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          匯出圖片
+        </button>
+      </div>
+    </div>
+
+    <!-- Canvas area -->
+    <div class="cw" id="cw">
+      <div class="empty-st" id="emptySt">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke-width="1" stroke-linecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <h3>尚未載入菜單圖片</h3>
+        <p>請從左側上傳，或從菜單庫載入</p>
+      </div>
+      <div class="cc" id="cc" style="display:none;">
+        <canvas id="mc"></canvas>
+      </div>
+
+      <!-- Right Panel: 編輯清單 -->
+      <div class="rp" id="rp">
+        <div class="rp-hd">
+          <div class="rp-hd-l">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <div>
+              <div class="rp-title">編輯清單</div>
+              <div class="rp-sub" id="rpSub">共 0 個價格框</div>
+            </div>
+          </div>
+          <button class="rp-x" onclick="App.toggleEditList()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="rp-body">
+          <div class="price-list" id="plist">
+            <div style="text-align:center;padding:20px 13px;color:var(--gmd);font-size:12px;">尚未框選任何價格</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Float Panel -->
+      <div class="fp" id="fp">
+        <div class="fp-hd">
+          <div class="fp-hd-l">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <div>
+              <div class="fp-title">輸入價格資訊</div>
+              <div class="fp-sub" id="fpSub">框選區域：—</div>
+            </div>
+          </div>
+          <button class="fp-x" onclick="FloatPanel.reqClose()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="fp-body">
+          <div>
+            <label class="fp-lbl">原始價格數值</label>
+            <input class="fp-input" type="number" id="fpVal" placeholder="例：880" min="1">
+          </div>
+          <div class="fp-info">
+            <div class="fi-row"><span class="fi-lbl">框選尺寸</span><span class="fi-val" id="fpSz">—</span></div>
+            <div class="fi-row"><span class="fi-lbl">套用群組</span><span class="fi-val" id="fpGrpName" style="color:var(--red)">全域</span></div>
+            <div class="fi-row"><span class="fi-lbl">調整幅度</span><span class="fi-val" id="fpPct">+35%</span></div>
+            <div class="fi-row" style="margin-top:4px;padding-top:6px;border-top:1px solid var(--glt);">
+              <span class="fi-lbl" style="font-weight:500;white-space:nowrap;">新價格</span>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span class="fi-calc" id="fpCalc" title="依百分比計算的原始結果">—</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--gmd)" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+                <input type="number" class="fi-new-input" id="fpNew" placeholder="—" min="1">
+              </div>
+            </div>
+            <div class="fp-round-opts">
+              <label class="fp-ck-lbl">
+                <input type="checkbox" id="ckRound10" onchange="FloatPanel.onRoundChange('10')">
+                <span>四捨五入至十位數（227→230，224→220）</span>
+              </label>
+              <label class="fp-ck-lbl">
+                <input type="checkbox" id="ckRound5" onchange="FloatPanel.onRoundChange('5')">
+                <span>無條件進位至 5 或 10（227→230，224→225）</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="fp-lbl">套用群組（批次百分比）</label>
+            <div class="fp-grp-sel" id="fpGrpSel">
+              <div style="font-size:12px;color:var(--gmd);">先到「批次」頁建立群組</div>
+            </div>
+          </div>
+          <div>
+            <label class="fp-lbl">數字排列方向</label>
+            <div class="fp-or">
+              <button class="fob" id="foH" onclick="FloatPanel.setOrient('horizontal')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="12" x2="20" y2="12"/><polyline points="14 6 20 12 14 18"/>
+                </svg>
+                橫式
+              </button>
+              <button class="fob active" id="foV" onclick="FloatPanel.setOrient('vertical')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                  <line x1="12" y1="4" x2="12" y2="20"/><polyline points="6 14 12 20 18 14"/>
+                </svg>
+                直式
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="fp-lbl">字體大小（px）</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="number" id="fpFontSize" placeholder="自動" min="8" max="300" style="flex:1;">
+              <div class="pct-badge" id="fpFontBadge" style="min-width:52px;font-size:12px;padding:8px 6px;">自動</div>
+            </div>
+            <div style="font-size:11px;color:var(--gmd);margin-top:4px;">留空=自動依矩形計算・設定後固定所有框的大小</div>
+          </div>
+          <div class="fp-tip">
+            <div class="fp-tr">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span>按 <strong>Enter</strong> 確認，按 <strong>Esc</strong> 取消</span>
+            </div>
+          </div>
+        </div>
+        <div class="fp-ft">
+          <button class="btn btn-ghost" style="flex:1;" onclick="FloatPanel.reqClose()">取消</button>
+          <button class="btn btn-primary" style="flex:2;" onclick="FloatPanel.confirm()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            確認加入
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="sdot"></div>
+      <span id="stTxt">等待上傳圖片</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--gmd);" id="coordTxt"></span>
+    </div>
+
+  </div><!-- /main -->
+
+</div><!-- /app -->
+
+<!-- Confirm Dialog -->
+<div class="cdov" id="cdov">
+  <div class="cd">
+    <div class="cd-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    </div>
+    <div class="cd-title" id="cdTitle">確認操作</div>
+    <div class="cd-desc" id="cdDesc"></div>
+    <div class="cd-acts">
+      <button class="btn btn-ghost" style="flex:1;font-size:13px;" onclick="App.closeCD(false)" id="cdCancel">取消</button>
+      <button class="btn btn-primary" style="flex:1;font-size:13px;" onclick="App.closeCD(true)" id="cdOk">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts — 順序重要 -->
+<script src="/static/js/canvas.js"></script>
+<script src="/static/js/fillengine.js"></script>
+<script src="/static/js/groups.js"></script>
+<script src="/static/js/library.js"></script>
+<script src="/static/js/floatpanel.js"></script>
+<script src="/static/js/app.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', function() {
+    App.init();
+  });
+</script>
+</body>
+</html>
