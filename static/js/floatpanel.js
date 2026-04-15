@@ -10,6 +10,9 @@ var FloatPanel = (function() {
   var stickyRound5 = false;
   var stickyFontColor = ''; // '' = 自動
   var stickyFontFamily = 'Noto Serif TC';
+  var stickyLetterSpacing = 0; // px，0 = 預設
+  var stickyBold = false;
+  var stickyTextAlign = 'center'; // 'left' | 'center' | 'right'
 
   function init() {
     document.getElementById('fpVal').addEventListener('input', function() {
@@ -102,7 +105,10 @@ var FloatPanel = (function() {
     document.getElementById('fpSz').textContent = Math.round(w) + '×' + Math.round(h) + ' px';
     document.getElementById('fpFontSel').value = stickyFontFamily;
     document.getElementById('fpFontSize').value = stickyFontSize > 0 ? stickyFontSize : '';
+    document.getElementById('fpLetterSpacing').value = stickyLetterSpacing !== 0 ? stickyLetterSpacing : '';
     setColorUI(stickyFontColor);
+    setBoldUI(stickyBold);
+    setAlignUI(stickyTextAlign);
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
     updateGroupInfo();
@@ -128,7 +134,11 @@ var FloatPanel = (function() {
     var bfs = box.fontSize || 0;
     document.getElementById('fpFontSel').value = box.fontFamily || stickyFontFamily;
     document.getElementById('fpFontSize').value = bfs > 0 ? bfs : '';
+    var bls = box.letterSpacing !== undefined ? box.letterSpacing : stickyLetterSpacing;
+    document.getElementById('fpLetterSpacing').value = bls !== 0 ? bls : '';
     setColorUI(box.fontColor || stickyFontColor || '');
+    setBoldUI(box.bold !== undefined ? box.bold : stickyBold);
+    setAlignUI(box.textAlign || stickyTextAlign);
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
     updateGroupInfo();
@@ -181,6 +191,18 @@ var FloatPanel = (function() {
     var fontSize = (fsInput > 0) ? fsInput : 0;
     stickyFontSize = fontSize;
 
+    // 讀取字體間距
+    var lsInput = parseFloat(document.getElementById('fpLetterSpacing').value);
+    var letterSpacing = isNaN(lsInput) ? 0 : lsInput;
+    stickyLetterSpacing = letterSpacing;
+
+    // 讀取粗體
+    var bold = document.getElementById('fpBold').classList.contains('active');
+    stickyBold = bold;
+
+    // 讀取文字對齊
+    var textAlign = stickyTextAlign;
+
     // 讀取字體顏色
     var fontColor = stickyFontColor; // '' = 自動
 
@@ -194,7 +216,8 @@ var FloatPanel = (function() {
       App.updateBox(editingId, {
         value: v, orient: fpOrient, group: fpGroup,
         fontSize: fontSize, newValue: newValue, fontColor: fontColor,
-        fontFamily: stickyFontFamily
+        fontFamily: stickyFontFamily, letterSpacing: letterSpacing,
+        bold: bold, textAlign: textAlign
       });
       document.getElementById('fp').querySelector('.fp-title').textContent = '輸入價格資訊';
       App.setSt('已更新價格：' + v + ' → ' + newValue);
@@ -205,7 +228,8 @@ var FloatPanel = (function() {
         w: pendingBox.w, h: pendingBox.h,
         value: v, orient: fpOrient, group: fpGroup,
         fontSize: fontSize, newValue: newValue, fontColor: fontColor,
-        fontFamily: stickyFontFamily,
+        fontFamily: stickyFontFamily, letterSpacing: letterSpacing,
+        bold: bold, textAlign: textAlign,
         fillMode: currentMode,
         patchSource: (currentMode === 'patch' && typeof FillEngine !== 'undefined') ? FillEngine.getPatchSource() : null
       });
@@ -239,6 +263,28 @@ var FloatPanel = (function() {
     updateNewPrice();
   }
 
+  function setBoldUI(b) {
+    document.getElementById('fpBold').classList.toggle('active', !!b);
+  }
+
+  function toggleBold() {
+    var btn = document.getElementById('fpBold');
+    btn.classList.toggle('active');
+    stickyBold = btn.classList.contains('active');
+  }
+
+  function setAlignUI(a) {
+    stickyTextAlign = a || 'center';
+    document.querySelectorAll('.fp-align-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.align === stickyTextAlign);
+    });
+  }
+
+  function setAlign(a) {
+    stickyTextAlign = a;
+    setAlignUI(a);
+  }
+
   function getGroup() { return fpGroup; }
   function getStickyFontSize() { return stickyFontSize; }
 
@@ -256,6 +302,8 @@ var FloatPanel = (function() {
     onColorInput: onColorInput,
     resetColor: resetColor,
     onFontChange: onFontChange,
+    toggleBold: toggleBold,
+    setAlign: setAlign,
     getGroup: getGroup,
     getStickyFontSize: getStickyFontSize
   };

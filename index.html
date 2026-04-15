@@ -469,10 +469,14 @@
               <option value="sans-serif">無襯線（通用）</option>
             </select>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 10px;">
             <div>
               <label class="fp-lbl">字體大小（px）</label>
               <input type="number" id="fpFontSize" placeholder="自動" min="8" max="300" style="width:100%;">
+            </div>
+            <div>
+              <label class="fp-lbl">字體間距（px）</label>
+              <input type="number" id="fpLetterSpacing" placeholder="0" min="-10" max="50" style="width:100%;">
             </div>
             <div>
               <label class="fp-lbl">字體顏色</label>
@@ -481,6 +485,29 @@
                   style="width:40px;height:34px;border:1.5px solid var(--glt);border-radius:6px;padding:2px;cursor:pointer;background:none;flex-shrink:0;"
                   oninput="FloatPanel.onColorInput()">
                 <span id="fpColorLabel" style="font-size:11px;color:var(--gmd);">自動</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;">
+            <div>
+              <label class="fp-lbl">粗體</label>
+              <button class="fob" id="fpBold" onclick="FloatPanel.toggleBold()" style="width:100%;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+                Bold
+              </button>
+            </div>
+            <div>
+              <label class="fp-lbl">文字對齊</label>
+              <div style="display:flex;gap:5px;">
+                <button class="fob fp-align-btn" data-align="left" onclick="FloatPanel.setAlign('left')" style="flex:1;" title="靠左">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+                </button>
+                <button class="fob fp-align-btn active" data-align="center" onclick="FloatPanel.setAlign('center')" style="flex:1;" title="置中">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+                </button>
+                <button class="fob fp-align-btn" data-align="right" onclick="FloatPanel.setAlign('right')" style="flex:1;" title="靠右">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+                </button>
               </div>
             </div>
           </div>
