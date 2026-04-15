@@ -165,32 +165,20 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <b style="color:var(--gdk);">仿製印章 + Alpha 遮罩</b>
             </div>
-            先框選空白背景作為<b style="color:var(--red);">來源區域</b>，再框選要蓋掉的價格，系統將紋理複製過去並柔化邊緣，適合有紙張紋理或漸層的背景。
-            <div style="margin-top:8px;">
-              <button class="btn btn-outline" style="font-size:11px;padding:6px 10px;" onclick="FillEngine.setPatchSelecting(true); App.setSt('請在空白背景處拖拉框選來源紋理區域');">
+            先框選空白背景作為<b style="color:var(--red);">來源區域</b>，再框選要蓋掉的價格。
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <button class="btn btn-outline" style="font-size:11px;padding:6px 10px;flex-shrink:0;" onclick="FillEngine.setPatchSelecting(true); App.setSt('請在空白背景處拖拉框選來源紋理區域');">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                點此選取來源區域
+                點此選取來源
               </button>
-              <img id="patch-source-preview" src="" alt="來源預覽" style="display:none;width:100%;margin-top:6px;border-radius:4px;border:1px solid var(--glt);">
-              <div style="display:flex;align-items:center;gap:7px;margin-top:7px;">
-                <span style="white-space:nowrap;">羽化強度</span>
-                <input type="range" min="0" max="12" value="5" style="flex:1;height:4px;" oninput="FillEngine.setFeather('patch', this.value); document.getElementById('patch-feather-val').textContent = this.value + 'px'">
-                <span id="patch-feather-val" style="color:var(--red);min-width:26px;">5px</span>
-              </div>
+              <img id="patch-source-preview" src="" alt="來源預覽" style="display:none;width:52px;height:40px;object-fit:cover;border-radius:4px;border:1.5px solid var(--red);flex-shrink:0;">
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;margin-top:8px;">
+              <span style="white-space:nowrap;">羽化強度</span>
+              <input type="range" min="0" max="12" value="5" style="flex:1;height:4px;" oninput="FillEngine.setFeather('patch', this.value); document.getElementById('patch-feather-val').textContent = this.value + 'px'">
+              <span id="patch-feather-val" style="color:var(--red);min-width:26px;">5px</span>
             </div>
           </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div>
-          <div class="sec-lbl">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            最近操作紀錄
-          </div>
-          <div class="hist-list" id="histList"></div>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:7px;">
@@ -201,19 +189,6 @@
             </svg>
             儲存至菜單庫
           </button>
-          <button class="btn btn-ghost" onclick="App.saveJSON()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-              <polyline points="21 15 21 19 3 19 3 15"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            匯出 JSON
-          </button>
-          <button class="btn btn-ghost" onclick="document.getElementById('ji').click()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-              <polyline points="21 15 21 19 3 19 3 15"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="17"/>
-            </svg>
-            載入 JSON
-          </button>
-          <input type="file" id="ji" accept=".json" style="display:none">
         </div>
 
       </div><!-- /pane-edit -->
