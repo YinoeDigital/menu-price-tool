@@ -345,6 +345,46 @@ select:focus,input:focus{border-color:var(--red);}
   display:flex;align-items:center;gap:9px;flex-shrink:0;
 }
 .sdot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;}
+.ver-badge{
+  font-size:10px;font-weight:500;color:var(--gmd);
+  background:var(--cream);border:1px solid var(--glt);
+  border-radius:99px;padding:1px 7px;flex-shrink:0;
+  letter-spacing:.03em;
+}
+
+/* ── UPDATE TOAST ── */
+.upd-toast{
+  position:fixed;bottom:20px;right:20px;z-index:500;
+  display:flex;align-items:center;gap:10px;
+  background:#2C2C2C;color:#fff;
+  border-radius:12px;padding:13px 14px 13px 13px;
+  box-shadow:0 8px 32px rgba(0,0,0,.28);
+  max-width:340px;min-width:260px;
+  transform:translateY(calc(100% + 28px));opacity:0;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+  pointer-events:none;
+}
+.upd-toast.show{transform:translateY(0);opacity:1;pointer-events:all;}
+.upd-icon{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.upd-body{flex:1;min-width:0;}
+.upd-title{font-size:13px;font-weight:600;line-height:1.3;}
+.upd-sub{font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.upd-btn{
+  flex-shrink:0;font-size:12px;font-weight:600;font-family:inherit;
+  padding:6px 12px;border-radius:8px;border:none;cursor:pointer;
+  background:var(--red);color:#fff;transition:background .15s;white-space:nowrap;
+}
+.upd-btn:hover{background:var(--red-dk);}
+.upd-close{
+  flex-shrink:0;width:22px;height:22px;border-radius:6px;
+  border:none;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;padding:0;
+}
+.upd-close:hover{background:rgba(255,255,255,.25);}
 
 /* ── FLOAT PANEL ── */
 .fp{

@@ -6,6 +6,7 @@
 <title>菜單價格調整工具</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
+<script>var APP_VERSION = '1.1.0';</script>
 </head>
 <body>
 <div class="app">
@@ -501,6 +502,7 @@
       <div class="sdot"></div>
       <span id="stTxt">等待上傳圖片</span>
       <span style="margin-left:auto;font-size:11px;color:var(--gmd);" id="coordTxt"></span>
+      <span class="ver-badge" id="verBadge" title="目前版本">v1.1.0</span>
     </div>
 
   </div><!-- /main -->
@@ -527,6 +529,26 @@
 
 <!-- Scripts — 順序重要 -->
 <script src="/static/js/canvas.js"></script>
+<!-- Update Toast -->
+<div class="upd-toast" id="updToast">
+  <div class="upd-icon">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  </div>
+  <div class="upd-body">
+    <div class="upd-title">有新版本可用</div>
+    <div class="upd-sub" id="updNote">請重新整理頁面以更新</div>
+  </div>
+  <button class="upd-btn" onclick="location.reload(true)">重新整理</button>
+  <button class="upd-close" onclick="document.getElementById('updToast').classList.remove('show')" title="關閉">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+</div>
+
 <script src="/static/js/fillengine.js"></script>
 <script src="/static/js/groups.js"></script>
 <script src="/static/js/library.js"></script>
@@ -535,7 +557,29 @@
 <script>
   window.addEventListener('DOMContentLoaded', function() {
     App.init();
+    checkVersion();
   });
+
+  function checkVersion() {
+    var url = '/static/version.json?t=' + Date.now();
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var latest = data.version || '';
+        var badge = document.getElementById('verBadge');
+        if (badge) badge.textContent = 'v' + (APP_VERSION || latest);
+        if (latest && latest !== APP_VERSION) {
+          var note = document.getElementById('updNote');
+          if (note && data.note) note.textContent = '新版 v' + latest + '：' + data.note;
+          setTimeout(function() {
+            document.getElementById('updToast').classList.add('show');
+          }, 1500);
+        }
+      })
+      .catch(function() {});
+    // 每 5 分鐘再檢查一次
+    setTimeout(checkVersion, 5 * 60 * 1000);
+  }
 </script>
 </body>
 </html>
