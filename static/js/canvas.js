@@ -123,8 +123,8 @@ var Canvas = (function() {
   // ── 滑鼠事件 ──
   function onMouseDown(e) {
     if (!img) return;
-    // Shift / Alt / 中鍵 → 平移（不受 float panel 影響）
-    if (e.shiftKey || e.button === 1 || e.altKey) {
+    // Ctrl / Alt / 中鍵 → 平移（不受 float panel 影響）
+    if (e.ctrlKey || e.button === 1 || e.altKey) {
       isPanning = true;
       panSX = e.clientX; panSY = e.clientY;
       panOX = panX; panOY = panY;
@@ -166,10 +166,10 @@ var Canvas = (function() {
   function onMouseMove(e) {
     if (!img) return;
     var p = toCanvas(e.clientX, e.clientY);
-    var ctrlHeld = e.ctrlKey;
+    var shiftHeld = e.shiftKey;
 
-    // Shift 游標（任何狀態下都顯示）
-    if (e.shiftKey && !isPanning && !isDragging && !drawing) {
+    // Ctrl 游標（平移提示）
+    if (e.ctrlKey && !isPanning && !isDragging && !drawing) {
       mc.style.cursor = 'grab';
     }
 
@@ -204,7 +204,7 @@ var Canvas = (function() {
     }
 
     if (!drawing) {
-      if (e.shiftKey) { mc.style.cursor = 'grab'; return; }
+      if (e.ctrlKey) { mc.style.cursor = 'grab'; return; }
       var overBox = false;
       var boxes = App.getBoxes();
       for (var bi = 0; bi < boxes.length; bi++) {
@@ -219,8 +219,8 @@ var Canvas = (function() {
         mc.style.cursor = overBox ? 'pointer' : 'crosshair';
       }
 
-      if (ctrlHeld && lastW > 0) {
-        document.getElementById('coordTxt').textContent = '⌃ Ctrl：複製上次尺寸 ' + lastW + '×' + lastH + ' px';
+      if (shiftHeld && lastW > 0) {
+        document.getElementById('coordTxt').textContent = '⇧ Shift：複製上次尺寸 ' + lastW + '×' + lastH + ' px';
       } else {
         document.getElementById('coordTxt').textContent = 'x:' + Math.round(p.x) + ' y:' + Math.round(p.y);
       }
@@ -236,7 +236,7 @@ var Canvas = (function() {
       return;
     }
 
-    if (ctrlHeld && lastW > 0 && lastH > 0) {
+    if (shiftHeld && lastW > 0 && lastH > 0) {
       curBox.w = lastW;
       curBox.h = lastH;
     } else {
@@ -245,7 +245,7 @@ var Canvas = (function() {
     }
     App.redraw();
     if (curBox.w !== 0 && curBox.h !== 0) {
-      ctx.strokeStyle = (ctrlHeld && lastW > 0) ? '#2980B9' : '#C0392B';
+      ctx.strokeStyle = (shiftHeld && lastW > 0) ? '#2980B9' : '#C0392B';
       ctx.lineWidth = 2 / zoomLevel;
       ctx.setLineDash([5 / zoomLevel, 3 / zoomLevel]);
       ctx.strokeRect(curBox.x, curBox.y, curBox.w, curBox.h);
@@ -277,7 +277,7 @@ var Canvas = (function() {
   }
 
   function onMouseUp(e) {
-    if (isPanning) { isPanning = false; mc.style.cursor = e.shiftKey ? 'grab' : 'crosshair'; return; }
+    if (isPanning) { isPanning = false; mc.style.cursor = e.ctrlKey ? 'grab' : 'crosshair'; return; }
 
     // 拖曳結束
     if (isDragging) {
@@ -331,7 +331,7 @@ var Canvas = (function() {
   }
 
   function onWindowMouseUp(e) {
-    if (isPanning && !isDragging) { isPanning = false; mc.style.cursor = e.shiftKey ? 'grab' : 'crosshair'; return; }
+    if (isPanning && !isDragging) { isPanning = false; mc.style.cursor = e.ctrlKey ? 'grab' : 'crosshair'; return; }
     if (isDragging) {
       isDragging = false;
       mc.style.cursor = 'grab';
