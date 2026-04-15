@@ -123,8 +123,8 @@ var Canvas = (function() {
   // ── 滑鼠事件 ──
   function onMouseDown(e) {
     if (!img) return;
-    if (document.getElementById('fp').classList.contains('open')) return;
-    if (e.button === 1 || e.altKey || e.shiftKey) {
+    // Shift 平移優先，不受 float panel 狀態影響
+    if (e.shiftKey || e.button === 1 || e.altKey) {
       isPanning = true;
       panSX = e.clientX; panSY = e.clientY;
       panOX = panX; panOY = panY;
@@ -132,6 +132,7 @@ var Canvas = (function() {
       e.preventDefault();
       return;
     }
+    if (document.getElementById('fp').classList.contains('open')) return;
     var p = toCanvas(e.clientX, e.clientY);
 
     // 先判斷是否點擊既有矩形 → 進入拖曳模式
@@ -163,7 +164,12 @@ var Canvas = (function() {
     var p = toCanvas(e.clientX, e.clientY);
     var ctrlHeld = e.ctrlKey;
 
-    // Shift 平移
+    // Shift 游標（任何狀態下都顯示）
+    if (e.shiftKey && !isPanning && !isDragging && !drawing) {
+      mc.style.cursor = 'grab';
+    }
+
+    // 平移中
     if (isPanning) {
       panX = panOX + (e.clientX - panSX);
       panY = panOY + (e.clientY - panSY);
@@ -241,6 +247,13 @@ var Canvas = (function() {
 
   // window 層級的 mousemove：讓拖曳超出 canvas 也能追蹤
   function onWindowMouseMove(e) {
+    // 處理 shift pan 超出 canvas
+    if (isPanning && !isDragging) {
+      panX = panOX + (e.clientX - panSX);
+      panY = panOY + (e.clientY - panSY);
+      applyTransform();
+      return;
+    }
     if (!isDragging || !dragBox || !img) return;
     var p = toCanvas(e.clientX, e.clientY);
     var newX = p.x - dragOffX;
@@ -300,7 +313,7 @@ var Canvas = (function() {
   }
 
   function onWindowMouseUp(e) {
-    if (isPanning) { isPanning = false; return; }
+    if (isPanning && !isDragging) { isPanning = false; mc.style.cursor = e.shiftKey ? 'grab' : 'crosshair'; return; }
     if (isDragging) {
       isDragging = false;
       mc.style.cursor = 'grab';
