@@ -390,7 +390,7 @@ select:focus,input:focus{border-color:var(--red);}
   white-space:nowrap;
 }
 .fi-new-input{
-  width:46px;border:none;background:transparent;
+  width:70px;min-width:0;border:none;background:transparent;
   color:var(--red);font-weight:600;font-size:15px;
   text-align:right;padding:0;outline:none;
   border-bottom:1.5px solid transparent;
@@ -411,6 +411,16 @@ select:focus,input:focus{border-color:var(--red);}
 }
 .fob svg{stroke:currentColor;}
 .fob.active{background:var(--red-lt);border-color:var(--red);color:var(--red) !important;}
+/* select in float panel */
+.fp-body select{
+  width:100%;border:1.5px solid var(--glt);border-radius:var(--r);
+  padding:8px 32px 8px 10px;font-size:13px;color:var(--gdk);
+  background:var(--wh) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+  -webkit-appearance:none;appearance:none;outline:none;
+  font-family:inherit;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  transition:border-color .15s;
+}
+.fp-body select:focus{border-color:var(--red);}
 .fp-grp-sel{display:flex;flex-wrap:wrap;gap:5px;}
 .grp-chip{
   padding:4px 10px;border-radius:99px;font-size:12px;cursor:pointer;

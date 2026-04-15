@@ -166,12 +166,12 @@
               <b style="color:var(--gdk);">仿製印章 + Alpha 遮罩</b>
             </div>
             先框選空白背景作為<b style="color:var(--red);">來源區域</b>，再框選要蓋掉的價格。
-            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-              <button class="btn btn-outline" style="font-size:11px;padding:6px 10px;flex-shrink:0;" onclick="FillEngine.setPatchSelecting(true); App.setSt('請在空白背景處拖拉框選來源紋理區域');">
+            <div style="margin-top:8px;">
+              <button class="btn btn-outline" style="font-size:11px;padding:6px 10px;width:100%;" onclick="FillEngine.setPatchSelecting(true); App.setSt('請在空白背景處拖拉框選來源紋理區域');">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 點此選取來源
               </button>
-              <img id="patch-source-preview" src="" alt="來源預覽" style="display:none;width:52px;height:40px;object-fit:cover;border-radius:4px;border:1.5px solid var(--red);flex-shrink:0;">
+              <img id="patch-source-preview" src="" alt="來源預覽" style="display:none;width:100%;max-height:60px;object-fit:cover;border-radius:4px;border:1.5px solid var(--red);margin-top:6px;">
             </div>
             <div style="display:flex;align-items:center;gap:7px;margin-top:8px;">
               <span style="white-space:nowrap;">羽化強度</span>
@@ -295,6 +295,41 @@
         </button>
       </div>
       <div class="tb-right">
+        <!-- 快捷 Tips 按鈕 + 彈出面板 -->
+        <div style="position:relative;">
+          <button class="btn btn-outline" id="btnTips" style="width:auto;padding:7px 14px;font-size:13px;" onclick="App.toggleTips()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            快捷 Tips
+          </button>
+          <div class="tips-panel" id="tipsPanel">
+            <div class="tips-hd">
+              <span class="tips-title">⌨️ 快捷鍵說明</span>
+              <div class="tips-os-tabs">
+                <button class="tips-os-btn active" id="tipsMac" onclick="App.setTipsOS('mac')">Mac</button>
+                <button class="tips-os-btn" id="tipsWin" onclick="App.setTipsOS('win')">Windows</button>
+              </div>
+            </div>
+            <table class="tips-tbl">
+              <tr><th>功能</th><th id="tipsKeyHead">按鍵</th></tr>
+              <tr><td>繪製新框</td><td>拖曳空白處</td></tr>
+              <tr><td>點擊框 → 編輯</td><td>點擊</td></tr>
+              <tr class="tips-mac"><td>複製上次框大小</td><td>⌃ Ctrl + 拖曳</td></tr>
+              <tr class="tips-win" style="display:none"><td>複製上次框大小</td><td>Ctrl + 拖曳</td></tr>
+              <tr class="tips-mac"><td>移動框位置</td><td>⌘ Cmd + 拖曳</td></tr>
+              <tr class="tips-win" style="display:none"><td>移動框位置</td><td>⊞ Win + 拖曳</td></tr>
+              <tr class="tips-mac"><td>平移畫布</td><td>⇧ Shift + 拖曳</td></tr>
+              <tr class="tips-win" style="display:none"><td>平移畫布</td><td>Shift + 拖曳</td></tr>
+              <tr><td>縮放畫布</td><td>滾輪</td></tr>
+              <tr class="tips-mac"><td>確認輸入</td><td>↵ Return</td></tr>
+              <tr class="tips-win" style="display:none"><td>確認輸入</td><td>↵ Enter</td></tr>
+              <tr><td>取消 / 關閉面板</td><td>Esc</td></tr>
+              <tr><td>還原字體顏色自動</td><td>雙擊色塊</td></tr>
+            </table>
+          </div>
+        </div>
         <button class="btn btn-outline" id="btnEditList" style="width:auto;padding:7px 14px;font-size:13px;" onclick="App.toggleEditList()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
             <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -383,17 +418,17 @@
               <div style="display:flex;align-items:center;gap:5px;">
                 <span class="fi-calc" id="fpCalc" title="依百分比計算的原始結果">—</span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--gmd)" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
-                <input type="number" class="fi-new-input" id="fpNew" placeholder="—" min="1">
+                <input type="number" class="fi-new-input" id="fpNew" placeholder="—" min="1" style="width:70px;min-width:0;">
               </div>
             </div>
             <div class="fp-round-opts">
               <label class="fp-ck-lbl">
                 <input type="checkbox" id="ckRound10" onchange="FloatPanel.onRoundChange('10')">
-                <span>四捨五入至十位數（227→230，224→220）</span>
+                <span>四捨五入至十位數<br>（227→230，224→220）</span>
               </label>
               <label class="fp-ck-lbl">
                 <input type="checkbox" id="ckRound5" onchange="FloatPanel.onRoundChange('5')">
-                <span>無條件進位至 5 或 10（227→230，224→225）</span>
+                <span>無條件進位至 5 或 10<br>（227→230，224→225）</span>
               </label>
             </div>
           </div>
@@ -422,7 +457,7 @@
           </div>
           <div>
             <label class="fp-lbl">字型</label>
-            <select id="fpFontSel" style="width:100%;" onchange="FloatPanel.onFontChange()">
+            <select id="fpFontSel" onchange="FloatPanel.onFontChange()">
               <option value="Noto Serif TC">Noto Serif TC（明體，適合日式）</option>
               <option value="Noto Sans TC">Noto Sans TC（黑體，現代風）</option>
               <option value="Ma Shan Zheng">馬善政（毛筆手寫）</option>
@@ -446,15 +481,6 @@
                   oninput="FloatPanel.onColorInput()">
                 <span id="fpColorLabel" style="font-size:11px;color:var(--gmd);">自動</span>
               </div>
-            </div>
-          </div>
-          <div style="font-size:11px;color:var(--gmd);margin-top:4px;">字體大小留空=自動依矩形計算・顏色點選後固定，再點一下還原自動</div>
-          <div class="fp-tip">
-            <div class="fp-tr">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              <span>按 <strong>Enter</strong> 確認，按 <strong>Esc</strong> 取消</span>
             </div>
           </div>
         </div>
