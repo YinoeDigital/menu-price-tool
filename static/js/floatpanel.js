@@ -312,6 +312,45 @@ var FloatPanel = (function() {
     setAlignUI(a);
   }
 
+  function applyToAll() {
+    var count = App.getBoxes().length;
+    if (count === 0) { App.setSt('目前沒有任何價格框'); return; }
+
+    // 讀取目前面板的字樣設定
+    stickyFontFamily = document.getElementById('fpFontSel').value;
+    var fsInput = parseInt(document.getElementById('fpFontSize').value);
+    stickyFontSize = (fsInput > 0) ? fsInput : 0;
+    var lsInput = parseFloat(document.getElementById('fpLetterSpacing').value);
+    stickyLetterSpacing = isNaN(lsInput) ? 0 : lsInput;
+    stickyBold = document.getElementById('fpBold').classList.contains('active');
+    stickyItalic = document.getElementById('fpItalic').classList.contains('active');
+    stickyStrikethrough = document.getElementById('fpStrike').classList.contains('active');
+
+    var settings = {
+      fontFamily: stickyFontFamily,
+      fontSize: stickyFontSize,
+      letterSpacing: stickyLetterSpacing,
+      fontColor: stickyFontColor,
+      bold: stickyBold,
+      italic: stickyItalic,
+      strikethrough: stickyStrikethrough,
+      textAlign: stickyTextAlign
+    };
+
+    App.showCD(
+      '套用至全部 ' + count + ' 個價格框',
+      '目前的字樣設定（字型、大小、間距、顏色、格式、對齊）將覆蓋所有價格框的設定，無法還原。',
+      '返回編輯',
+      '確認全部變更',
+      function() {
+        App.applyFontToAll(settings);
+        document.getElementById('fp').classList.remove('open');
+        pendingBox = null;
+        editingId = null;
+      }
+    );
+  }
+
   function getGroup() { return fpGroup; }
   function getStickyFontSize() { return stickyFontSize; }
 
@@ -333,6 +372,7 @@ var FloatPanel = (function() {
     toggleItalic: toggleItalic,
     toggleStrikethrough: toggleStrikethrough,
     setAlign: setAlign,
+    applyToAll: applyToAll,
     getGroup: getGroup,
     getStickyFontSize: getStickyFontSize
   };

@@ -135,6 +135,8 @@ select:focus,input:focus{border-color:var(--red);}
 .btn-ghost{background:transparent;color:var(--gdk) !important;border:1px solid var(--glt);}
 .btn-ghost svg{stroke:var(--gdk);}
 .btn-ghost:hover{background:var(--cream);}
+.btn-apply-all{background:#F5EEF8;color:#7D3C98 !important;border:1.5px solid #C39BD3;}
+.btn-apply-all:hover{background:#EBD5F5;border-color:#7D3C98;}
 .btn-sm{padding:6px 10px;font-size:12px;}
 
 /* Orientation buttons */

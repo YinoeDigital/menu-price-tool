@@ -575,6 +575,24 @@ var App = (function() {
     return getGlobalPct();
   }
 
+  // ── 套用字樣至全部框 ──
+  function applyFontToAll(settings) {
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i];
+      if (settings.fontFamily !== undefined)    b.fontFamily    = settings.fontFamily;
+      if (settings.fontSize !== undefined)      b.fontSize      = settings.fontSize;
+      if (settings.letterSpacing !== undefined) b.letterSpacing = settings.letterSpacing;
+      if (settings.fontColor !== undefined)     b.fontColor     = settings.fontColor;
+      if (settings.bold !== undefined)          b.bold          = settings.bold;
+      if (settings.italic !== undefined)        b.italic        = settings.italic;
+      if (settings.strikethrough !== undefined) b.strikethrough = settings.strikethrough;
+      if (settings.textAlign !== undefined)     b.textAlign     = settings.textAlign;
+    }
+    redraw();
+    renderPriceList();
+    setSt('✅ 已將字樣設定套用至全部 ' + boxes.length + ' 個價格框');
+  }
+
   function setSt(m) { document.getElementById('stTxt').textContent = m; }
 
   function getBoxes() { return boxes; }
@@ -610,6 +628,7 @@ var App = (function() {
     getEffPct: getEffPct,
     getGlobalPct: getGlobalPct,
     toggleTips: toggleTips,
-    setTipsOS: setTipsOS
+    setTipsOS: setTipsOS,
+    applyFontToAll: applyFontToAll
   };
 })();
