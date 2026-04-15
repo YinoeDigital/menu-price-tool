@@ -68,13 +68,14 @@ var App = (function() {
     var zoom = Canvas.getZoom();
     ctx.clearRect(0, 0, mc.width, mc.height);
     ctx.drawImage(img, 0, 0);
-    var font = document.getElementById('fontSel').value;
+    var globalFont = document.getElementById('fontSel').value;
     var lw = Math.max(1, 1.5 / zoom);
     var pct = getGlobalPct();
     var groups = Groups.getAll();
 
     for (var i = 0; i < boxes.length; i++) {
       var box = boxes[i];
+      var font = box.fontFamily || globalFont;
       var effPct = getEffPct(box);
       var nv = (box.newValue > 0) ? box.newValue : Math.round(box.value * (1 + effPct / 100));
       var g = box.group ? Groups.getById(box.group) : null;
@@ -229,9 +230,10 @@ var App = (function() {
     off.width = img.width; off.height = img.height;
     var oc = off.getContext('2d');
     oc.drawImage(img, 0, 0);
-    var font = document.getElementById('fontSel').value;
+    var globalFont2 = document.getElementById('fontSel').value;
     for (var i = 0; i < boxes.length; i++) {
       var box = boxes[i];
+      var font = box.fontFamily || globalFont2;
       var effPct = getEffPct(box);
       var nv = (box.newValue > 0) ? box.newValue : Math.round(box.value * (1 + effPct / 100));
 

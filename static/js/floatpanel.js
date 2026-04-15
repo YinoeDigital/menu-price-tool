@@ -9,6 +9,7 @@ var FloatPanel = (function() {
   var stickyRound10 = false;
   var stickyRound5 = false;
   var stickyFontColor = ''; // '' = 自動
+  var stickyFontFamily = 'Noto Serif TC';
 
   function init() {
     document.getElementById('fpVal').addEventListener('input', function() {
@@ -23,6 +24,13 @@ var FloatPanel = (function() {
     document.getElementById('fpFontColor').addEventListener('dblclick', function() {
       FloatPanel.resetColor();
     });
+  }
+
+  function onFontChange() {
+    stickyFontFamily = document.getElementById('fpFontSel').value;
+    // 同步全域 fontSel（供即時預覽 redraw 使用）
+    document.getElementById('fontSel').value = stickyFontFamily;
+    App.redraw();
   }
 
   function setColorUI(color) {
@@ -92,6 +100,7 @@ var FloatPanel = (function() {
     document.getElementById('fp').querySelector('.fp-title').textContent = '輸入價格資訊';
     document.getElementById('fpSub').textContent = '框選區域：' + Math.round(w) + '×' + Math.round(h) + ' px';
     document.getElementById('fpSz').textContent = Math.round(w) + '×' + Math.round(h) + ' px';
+    document.getElementById('fpFontSel').value = stickyFontFamily;
     document.getElementById('fpFontSize').value = stickyFontSize > 0 ? stickyFontSize : '';
     setColorUI(stickyFontColor);
     document.getElementById('ckRound10').checked = stickyRound10;
@@ -117,6 +126,7 @@ var FloatPanel = (function() {
     document.getElementById('fpSub').textContent = '框選區域：' + Math.round(box.w) + '×' + Math.round(box.h) + ' px';
     document.getElementById('fpSz').textContent = Math.round(box.w) + '×' + Math.round(box.h) + ' px';
     var bfs = box.fontSize || 0;
+    document.getElementById('fpFontSel').value = box.fontFamily || stickyFontFamily;
     document.getElementById('fpFontSize').value = bfs > 0 ? bfs : '';
     setColorUI(box.fontColor || stickyFontColor || '');
     document.getElementById('ckRound10').checked = stickyRound10;
@@ -162,6 +172,10 @@ var FloatPanel = (function() {
     }
     if (!pendingBox) return;
 
+    // 讀取字型
+    stickyFontFamily = document.getElementById('fpFontSel').value;
+    document.getElementById('fontSel').value = stickyFontFamily;
+
     // 讀取字體大小
     var fsInput = parseInt(document.getElementById('fpFontSize').value);
     var fontSize = (fsInput > 0) ? fsInput : 0;
@@ -179,7 +193,8 @@ var FloatPanel = (function() {
     if (editingId !== null) {
       App.updateBox(editingId, {
         value: v, orient: fpOrient, group: fpGroup,
-        fontSize: fontSize, newValue: newValue, fontColor: fontColor
+        fontSize: fontSize, newValue: newValue, fontColor: fontColor,
+        fontFamily: stickyFontFamily
       });
       document.getElementById('fp').querySelector('.fp-title').textContent = '輸入價格資訊';
       App.setSt('已更新價格：' + v + ' → ' + newValue);
@@ -190,6 +205,7 @@ var FloatPanel = (function() {
         w: pendingBox.w, h: pendingBox.h,
         value: v, orient: fpOrient, group: fpGroup,
         fontSize: fontSize, newValue: newValue, fontColor: fontColor,
+        fontFamily: stickyFontFamily,
         fillMode: currentMode,
         patchSource: (currentMode === 'patch' && typeof FillEngine !== 'undefined') ? FillEngine.getPatchSource() : null
       });
@@ -239,6 +255,7 @@ var FloatPanel = (function() {
     onRoundChange: onRoundChange,
     onColorInput: onColorInput,
     resetColor: resetColor,
+    onFontChange: onFontChange,
     getGroup: getGroup,
     getStickyFontSize: getStickyFontSize
   };

@@ -93,26 +93,17 @@
           <input type="file" id="fi" accept="image/*" style="display:none">
         </div>
 
-        <div class="divider"></div>
-
-        <div>
-          <div class="sec-lbl">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-              <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
-            </svg>
-            字型設定
-          </div>
-          <select id="fontSel">
-            <option value="Noto Serif TC">Noto Serif TC（明體，適合日式）</option>
-            <option value="Noto Sans TC">Noto Sans TC（黑體，現代風）</option>
-            <option value="Ma Shan Zheng">馬善政（毛筆手寫）</option>
-            <option value="Liu Jian Mao Cao">劉建毛草（草書）</option>
-            <option value="Long Cang">龍藏（手寫風）</option>
-            <option value="ZCOOL XiaoWei">站酷小薇（優雅）</option>
-            <option value="serif">襯線體（通用）</option>
-            <option value="sans-serif">無襯線（通用）</option>
-          </select>
-        </div>
+        <!-- 字型 select 隱藏保留，供 app.js redraw 讀取全域預設 -->
+        <select id="fontSel" style="display:none;">
+          <option value="Noto Serif TC">Noto Serif TC</option>
+          <option value="Noto Sans TC">Noto Sans TC</option>
+          <option value="Ma Shan Zheng">馬善政</option>
+          <option value="Liu Jian Mao Cao">劉建毛草</option>
+          <option value="Long Cang">龍藏</option>
+          <option value="ZCOOL XiaoWei">站酷小薇</option>
+          <option value="serif">襯線體</option>
+          <option value="sans-serif">無襯線</option>
+        </select>
 
 
         <div>
@@ -139,15 +130,7 @@
             覆蓋填色方案
           </div>
           <div style="display:flex;gap:6px;margin-bottom:10px;">
-            <button class="fill-mode-btn active" id="btn-autofill" onclick="FillEngine.setMode('autofill')" title="自動取樣矩形周圍背景色填色，並柔化邊緣">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M8 12s1.5-3 4-3 4 3 4 3-1.5 3-4 3-4-3-4-3z"/>
-                <circle cx="12" cy="12" r="1" fill="currentColor"/>
-              </svg>
-              <span>智能填色</span>
-            </button>
-            <button class="fill-mode-btn" id="btn-patch" onclick="FillEngine.setMode('patch')" title="從背景空白處取樣紋理，無縫覆蓋到價格位置">
+            <button class="fill-mode-btn active" id="btn-patch" onclick="FillEngine.setMode('patch')" title="從背景空白處取樣紋理，無縫覆蓋到價格位置">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
                 <rect x="3" y="3" width="7" height="7" rx="1"/>
                 <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -156,8 +139,16 @@
               </svg>
               <span>紋理補丁</span>
             </button>
+            <button class="fill-mode-btn" id="btn-autofill" onclick="FillEngine.setMode('autofill')" title="自動取樣矩形周圍背景色填色，並柔化邊緣">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 12s1.5-3 4-3 4 3 4 3-1.5 3-4 3-4-3-4-3z"/>
+                <circle cx="12" cy="12" r="1" fill="currentColor"/>
+              </svg>
+              <span>智能填色</span>
+            </button>
           </div>
-          <div id="autofill-hint" style="font-size:11px;color:var(--gmd);background:var(--cream);border-radius:var(--r);padding:9px 11px;border:1px solid var(--glt);line-height:1.7;">
+          <div id="autofill-hint" style="display:none;" style="font-size:11px;color:var(--gmd);background:var(--cream);border-radius:var(--r);padding:9px 11px;border:1px solid var(--glt);line-height:1.7;">
             <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <b style="color:var(--gdk);">環狀取樣 + 邊緣羽化</b>
@@ -169,7 +160,7 @@
               <span id="autofill-feather-val" style="color:var(--red);min-width:26px;">2px</span>
             </div>
           </div>
-          <div id="patch-hint" style="display:none;font-size:11px;color:var(--gmd);background:var(--cream);border-radius:var(--r);padding:9px 11px;border:1px solid var(--glt);line-height:1.7;">
+          <div id="patch-hint" style="font-size:11px;color:var(--gmd);background:var(--cream);border-radius:var(--r);padding:9px 11px;border:1px solid var(--glt);line-height:1.7;">
             <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <b style="color:var(--gdk);">仿製印章 + Alpha 遮罩</b>
@@ -453,6 +444,19 @@
                 直式
               </button>
             </div>
+          </div>
+          <div>
+            <label class="fp-lbl">字型</label>
+            <select id="fpFontSel" style="width:100%;" onchange="FloatPanel.onFontChange()">
+              <option value="Noto Serif TC">Noto Serif TC（明體，適合日式）</option>
+              <option value="Noto Sans TC">Noto Sans TC（黑體，現代風）</option>
+              <option value="Ma Shan Zheng">馬善政（毛筆手寫）</option>
+              <option value="Liu Jian Mao Cao">劉建毛草（草書）</option>
+              <option value="Long Cang">龍藏（手寫風）</option>
+              <option value="ZCOOL XiaoWei">站酷小薇（優雅）</option>
+              <option value="serif">襯線體（通用）</option>
+              <option value="sans-serif">無襯線（通用）</option>
+            </select>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
             <div>
