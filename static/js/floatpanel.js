@@ -29,33 +29,32 @@ var FloatPanel = (function() {
   function init() {
     var valEl = document.getElementById('fpVal');
 
-    // 千分位格式化輸入
+    // 即時計算：每次按鍵立即更新新價格（不在此做格式化，避免干擾計算）
     valEl.addEventListener('input', function() {
-      var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
-      if (raw === '') { this.value = ''; updateNewPrice(); this.classList.remove('err'); return; }
-      var selPos = this.selectionStart;
-      var prevLen = this.value.length;
-      var formatted = formatCommas(parseInt(raw, 10));
-      this.value = formatted;
-      var diff = formatted.length - prevLen;
-      var newPos = Math.max(0, selPos + diff);
-      try { this.setSelectionRange(newPos, newPos); } catch(e) {}
       updateNewPrice();
       this.classList.remove('err');
     });
-    // change: spinner / 貼上補捉
+
+    // 千分位格式化：只在離開欄位時套用，不干擾輸入過程
+    valEl.addEventListener('blur', function() {
+      var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
+      if (raw) this.value = formatCommas(parseInt(raw, 10));
+    });
+
+    // change: 貼上 / 外部賦值補捉
     valEl.addEventListener('change', function() {
-      var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
-      this.value = raw ? formatCommas(parseInt(raw, 10)) : '';
       updateNewPrice();
       this.classList.remove('err');
     });
-    // 聚焦時全選
+
+    // 聚焦時全選（方便快速覆蓋）
     valEl.addEventListener('focus', function() { this.select(); });
+
     valEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') confirm();
       if (e.key === 'Escape') reqClose();
     });
+
     // 字體顏色：雙擊還原自動
     document.getElementById('fpFontColor').addEventListener('dblclick', function() {
       FloatPanel.resetColor();
