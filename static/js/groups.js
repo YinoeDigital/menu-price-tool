@@ -84,7 +84,7 @@ var Groups = (function() {
   function renderChips(currentGroup) {
     var el = document.getElementById('fpGrpSel');
     if (!groups.length) {
-      el.innerHTML = '<div style="font-size:12px;color:var(--gmd)">先到「批次」頁建立群組</div>';
+      el.innerHTML = '';
       return;
     }
     var html = '<button class="grp-chip' + (currentGroup === null ? ' active' : '') + '" onclick="FloatPanel.selectGroup(null, event)">全域</button>';

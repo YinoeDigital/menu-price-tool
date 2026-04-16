@@ -553,3 +553,55 @@ select:focus,input:focus{border-color:var(--red);}
 /* FillEngine hint blocks */
 #patch-hint input[type=range],
 #autofill-hint input[type=range]{accent-color:var(--red);}
+
+/* ── 群組 Help 按鈕 ── */
+.grp-help-btn{
+  width:16px;height:16px;border-radius:50%;
+  border:1.5px solid var(--gmd);background:none;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:var(--gmd);line-height:1;
+  font-family:inherit;padding:0;transition:all .15s;flex-shrink:0;
+}
+.grp-help-btn:hover{border-color:var(--red);color:var(--red);}
+.grp-lbl-row{display:flex;align-items:center;gap:5px;margin-bottom:4px;}
+.grp-lbl-row .fp-lbl{margin:0;}
+
+/* ── 群組引導 Spotlight Overlay ── */
+.grp-guide-ov{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.62);
+  z-index:9000;
+  display:none;
+  cursor:pointer;
+}
+.grp-guide-ov.open{display:block;}
+.grp-spotlight{
+  position:absolute;
+  border-radius:10px;
+  background:rgba(255,255,255,0.15);
+  box-shadow:0 0 0 3px var(--red),0 0 0 6px rgba(192,57,43,0.25);
+  animation:spotPulse 1.3s ease-in-out infinite;
+  cursor:pointer;
+}
+.grp-spotlight-tip{
+  position:absolute;
+  top:50%;left:calc(100% + 14px);
+  transform:translateY(-50%);
+  background:var(--wh);color:var(--red);
+  font-size:13px;font-weight:500;
+  padding:7px 12px;border-radius:8px;
+  white-space:nowrap;
+  box-shadow:0 4px 16px rgba(0,0,0,0.18);
+  pointer-events:none;
+}
+.grp-spotlight-tip::before{
+  content:'';
+  position:absolute;
+  right:100%;top:50%;transform:translateY(-50%);
+  border:7px solid transparent;
+  border-right-color:var(--wh);
+}
+@keyframes spotPulse{
+  0%,100%{box-shadow:0 0 0 3px var(--red),0 0 0 6px rgba(192,57,43,0.2);}
+  50%{box-shadow:0 0 0 4px var(--red),0 0 0 10px rgba(192,57,43,0.0);}
+}

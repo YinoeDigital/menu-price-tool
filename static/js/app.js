@@ -53,6 +53,8 @@ var App = (function() {
         Canvas.fitToWindow();
         redraw();
         setSt('已載入：' + f.name + '（' + i.width + '×' + i.height + 'px）');
+        // 背景初始化 OCR 引擎
+        setTimeout(initOcr, 800);
       };
       i.src = ev.target.result;
     };
@@ -564,6 +566,72 @@ var App = (function() {
     setTimeout(function() { Canvas.fitToWindow(); }, 300);
   }
 
+  // ── OCR 價格識別 ──
+  var ocrWorker = null;
+  var ocrReady = false;
+  var ocrIniting = false;
+
+  function initOcr() {
+    if (ocrIniting || ocrReady || typeof Tesseract === 'undefined') return;
+    ocrIniting = true;
+    Tesseract.createWorker('eng', 1, { logger: function() {} })
+      .then(function(w) {
+        return w.setParameters({
+          tessedit_char_whitelist: '0123456789',
+          tessedit_pageseg_mode: '7'   // single text line
+        }).then(function() {
+          ocrWorker = w;
+          ocrReady = true;
+          setSt('OCR 識別引擎就緒 — 框選後將自動偵測數字');
+          setTimeout(function() { setSt(''); }, 3000);
+        });
+      })
+      .catch(function(e) {
+        console.warn('OCR init failed:', e);
+        ocrIniting = false;
+      });
+  }
+
+  function detectPrice(bx, by, bw, bh, cb) {
+    if (!ocrReady || !ocrWorker) { cb(null); return; }
+    var canvas = Canvas.getCanvas();
+    if (!canvas) { cb(null); return; }
+    bx = Math.round(bx); by = Math.round(by);
+    bw = Math.round(bw); bh = Math.round(bh);
+    if (bw <= 0 || bh <= 0) { cb(null); return; }
+
+    // Scale up for OCR accuracy
+    var scale = Math.min(6, Math.max(2, 96 / Math.min(bw, bh)));
+    var tmp = document.createElement('canvas');
+    tmp.width  = Math.round(bw * scale);
+    tmp.height = Math.round(bh * scale);
+    var tCtx = tmp.getContext('2d');
+    tCtx.imageSmoothingEnabled = false;
+    tCtx.drawImage(canvas, bx, by, bw, bh, 0, 0, tmp.width, tmp.height);
+
+    // Auto-invert if dark background (for light text on dark menus)
+    var imgd = tCtx.getImageData(0, 0, tmp.width, tmp.height);
+    var sum = 0;
+    for (var i = 0; i < imgd.data.length; i += 4) sum += imgd.data[i];
+    if (sum / (imgd.data.length / 4) < 128) {
+      for (var j = 0; j < imgd.data.length; j += 4) {
+        imgd.data[j]   = 255 - imgd.data[j];
+        imgd.data[j+1] = 255 - imgd.data[j+1];
+        imgd.data[j+2] = 255 - imgd.data[j+2];
+      }
+      tCtx.putImageData(imgd, 0, 0);
+    }
+
+    ocrWorker.recognize(tmp).then(function(result) {
+      var digits = (result.data.text || '').replace(/[^0-9]/g, '');
+      var num = parseInt(digits, 10);
+      if (num > 0 && num < 1000000) { cb(num); }
+      else { cb(null); }
+    }).catch(function() { cb(null); });
+  }
+
+  function isOcrReady() { return ocrReady; }
+
   // ── UTILS ──
   function getGlobalPct() { return parseFloat(document.getElementById('pctIn').value) || 0; }
 
@@ -629,6 +697,8 @@ var App = (function() {
     getGlobalPct: getGlobalPct,
     toggleTips: toggleTips,
     setTipsOS: setTipsOS,
-    applyFontToAll: applyFontToAll
+    applyFontToAll: applyFontToAll,
+    isOcrReady: isOcrReady,
+    detectPrice: detectPrice
   };
 })();

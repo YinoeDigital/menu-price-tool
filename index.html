@@ -408,7 +408,7 @@
         <div class="fp-body">
           <div>
             <label class="fp-lbl">原始價格數值</label>
-            <input class="fp-input" type="number" id="fpVal" placeholder="例：880" min="1">
+            <input class="fp-input" type="text" id="fpVal" placeholder="例：880" inputmode="numeric" autocomplete="off">
           </div>
           <div class="fp-info">
             <div class="fi-row"><span class="fi-lbl">框選尺寸</span><span class="fi-val" id="fpSz">—</span></div>
@@ -434,10 +434,11 @@
             </div>
           </div>
           <div>
-            <label class="fp-lbl">套用群組（批次百分比）</label>
-            <div class="fp-grp-sel" id="fpGrpSel">
-              <div style="font-size:12px;color:var(--gmd);">先到「批次」頁建立群組</div>
+            <div class="grp-lbl-row">
+              <span class="fp-lbl">套用群組（批次百分比）</span>
+              <button class="grp-help-btn" onclick="FloatPanel.showGroupGuide()" title="如何建立群組？">?</button>
             </div>
+            <div class="fp-grp-sel" id="fpGrpSel"></div>
           </div>
           <div>
             <label class="fp-lbl">數字排列方向</label>
@@ -458,7 +459,6 @@
           </div>
           <!-- ── 字樣設定卡片 ── -->
           <div class="fp-card">
-            <div class="fp-card-hd">字樣設定</div>
             <!-- 字型（全寬） -->
             <label class="fp-lbl">字型</label>
             <select id="fpFontSel" onchange="FloatPanel.onFontChange()">
@@ -521,8 +521,8 @@
         </div>
         <div class="fp-ft">
           <button class="btn btn-ghost" style="flex:1;" onclick="FloatPanel.reqClose()">取消</button>
-          <button class="btn btn-apply-all" style="flex:1.5;" onclick="FloatPanel.applyToAll()">全部變更</button>
-          <button class="btn btn-primary" style="flex:1.5;" onclick="FloatPanel.confirm()">加入</button>
+          <button class="btn btn-apply-all" style="flex:2;" onclick="FloatPanel.applyToAll()">全部變更</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="FloatPanel.confirm()">加入</button>
         </div>
       </div>
     </div>
@@ -557,7 +557,15 @@
   </div>
 </div>
 
+<!-- Group Guide Spotlight Overlay -->
+<div id="grpGuideOv" class="grp-guide-ov" onclick="FloatPanel.closeGroupGuide()">
+  <div id="grpSpotlight" class="grp-spotlight" onclick="FloatPanel.closeGroupGuide()">
+    <div class="grp-spotlight-tip">點此進入批次頁面建立群組</div>
+  </div>
+</div>
+
 <!-- Scripts — 順序重要 -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 <script src="static/js/canvas.js"></script>
 <!-- Update Toast -->
 <div class="upd-toast" id="updToast">
@@ -591,7 +599,7 @@
   });
 
   function checkVersion() {
-    var url = 'static/version.json?t=' + Date.now();
+    var url = '/static/version.json?t=' + Date.now();
     fetch(url)
       .then(function(r) { return r.json(); })
       .then(function(data) {

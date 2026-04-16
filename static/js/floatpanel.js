@@ -1,6 +1,16 @@
 // FloatPanel.js — 左側懸浮輸入面板
 
 var FloatPanel = (function() {
+
+  // ── 千分位格式工具 ──
+  function formatCommas(n) {
+    if (!n && n !== 0) return '';
+    return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  function stripCommas(s) {
+    return String(s || '').replace(/,/g, '');
+  }
+
   var pendingBox = null;
   var fpOrient = 'vertical';
   var fpGroup = null;
@@ -18,9 +28,30 @@ var FloatPanel = (function() {
 
   function init() {
     var valEl = document.getElementById('fpVal');
-    // input: 即時更新（每次按鍵）；change: 補捉 spinner 點擊、貼上等情境
-    valEl.addEventListener('input',  function() { updateNewPrice(); this.classList.remove('err'); });
-    valEl.addEventListener('change', function() { updateNewPrice(); this.classList.remove('err'); });
+
+    // 千分位格式化輸入
+    valEl.addEventListener('input', function() {
+      var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
+      if (raw === '') { this.value = ''; updateNewPrice(); this.classList.remove('err'); return; }
+      var selPos = this.selectionStart;
+      var prevLen = this.value.length;
+      var formatted = formatCommas(parseInt(raw, 10));
+      this.value = formatted;
+      var diff = formatted.length - prevLen;
+      var newPos = Math.max(0, selPos + diff);
+      try { this.setSelectionRange(newPos, newPos); } catch(e) {}
+      updateNewPrice();
+      this.classList.remove('err');
+    });
+    // change: spinner / 貼上補捉
+    valEl.addEventListener('change', function() {
+      var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
+      this.value = raw ? formatCommas(parseInt(raw, 10)) : '';
+      updateNewPrice();
+      this.classList.remove('err');
+    });
+    // 聚焦時全選
+    valEl.addEventListener('focus', function() { this.select(); });
     valEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') confirm();
       if (e.key === 'Escape') reqClose();
@@ -60,6 +91,7 @@ var FloatPanel = (function() {
 
   // ── 計算新價格（含四捨五入選項）──
   function calcNewPrice(rawVal) {
+    rawVal = parseFloat(stripCommas(String(rawVal)));
     var g = fpGroup ? Groups.getById(fpGroup) : null;
     var pct = g ? g.pct : App.getGlobalPct();
     var nv = Math.round(rawVal * (1 + pct / 100));
@@ -71,7 +103,7 @@ var FloatPanel = (function() {
   }
 
   function updateNewPrice() {
-    var v = parseFloat(document.getElementById('fpVal').value);
+    var v = parseFloat(stripCommas(document.getElementById('fpVal').value));
     if (v && v > 0) {
       var g = fpGroup ? Groups.getById(fpGroup) : null;
       var pct = g ? g.pct : App.getGlobalPct();
@@ -123,7 +155,25 @@ var FloatPanel = (function() {
     document.getElementById('fpVal').classList.remove('err');
     document.getElementById('fp').classList.add('open');
     setTimeout(function() { document.getElementById('fpVal').focus(); }, 260);
-    App.setSt('請在左側面板輸入原始價格數值');
+
+    // OCR 自動偵測數字
+    if (App.isOcrReady()) {
+      var fpValEl = document.getElementById('fpVal');
+      fpValEl.placeholder = '識別中…';
+      App.detectPrice(x, y, w, h, function(num) {
+        fpValEl.placeholder = '例：880';
+        if (num && !fpValEl.value) {
+          fpValEl.value = formatCommas(num);
+          updateNewPrice();
+          App.setSt('✦ 識別到價格：' + num + '，如有誤請直接修改');
+          fpValEl.select();
+        } else {
+          App.setSt('請在左側面板輸入原始價格數值');
+        }
+      });
+    } else {
+      App.setSt('請在左側面板輸入原始價格數值');
+    }
   }
 
   function openEdit(box) {
@@ -149,7 +199,7 @@ var FloatPanel = (function() {
     document.getElementById('ckRound5').checked  = stickyRound5;
     updateGroupInfo();
     Groups.renderChips(fpGroup);
-    document.getElementById('fpVal').value = box.value;
+    document.getElementById('fpVal').value = formatCommas(box.value);
     document.getElementById('fpVal').classList.remove('err');
     // 顯示原始計算值（參考）與最終值
     var g2 = fpGroup ? Groups.getById(fpGroup) : null;
@@ -180,7 +230,7 @@ var FloatPanel = (function() {
   }
 
   function confirm() {
-    var v = parseFloat(document.getElementById('fpVal').value);
+    var v = parseFloat(stripCommas(document.getElementById('fpVal').value));
     if (!v || v <= 0) {
       document.getElementById('fpVal').classList.add('err');
       document.getElementById('fpVal').focus();
@@ -351,6 +401,28 @@ var FloatPanel = (function() {
     );
   }
 
+  // ── 群組引導 Spotlight ──
+  function showGroupGuide() {
+    var tab = document.getElementById('tab-batch');
+    if (!tab) return;
+    var rect = tab.getBoundingClientRect();
+    var sp = document.getElementById('grpSpotlight');
+    if (sp) {
+      sp.style.left   = (rect.left   - 6) + 'px';
+      sp.style.top    = (rect.top    - 6) + 'px';
+      sp.style.width  = (rect.width  + 12) + 'px';
+      sp.style.height = (rect.height + 12) + 'px';
+    }
+    var ov = document.getElementById('grpGuideOv');
+    if (ov) ov.classList.add('open');
+  }
+
+  function closeGroupGuide() {
+    var ov = document.getElementById('grpGuideOv');
+    if (ov) ov.classList.remove('open');
+    App.showTab('batch');
+  }
+
   function getGroup() { return fpGroup; }
   function getStickyFontSize() { return stickyFontSize; }
 
@@ -374,6 +446,8 @@ var FloatPanel = (function() {
     setAlign: setAlign,
     applyToAll: applyToAll,
     getGroup: getGroup,
-    getStickyFontSize: getStickyFontSize
+    getStickyFontSize: getStickyFontSize,
+    showGroupGuide: showGroupGuide,
+    closeGroupGuide: closeGroupGuide
   };
 })();
