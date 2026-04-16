@@ -383,6 +383,27 @@ var Canvas = (function() {
         App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y });
       }
       dragBox = null;
+      return;
+    }
+    // 滑鼠在 canvas 外釋放時，同樣要結束繪製流程
+    // 否則 drawing / patchSelecting 狀態會卡住，導致下次拖拉行為異常
+    if (drawing && img && curBox) {
+      drawing = false;
+      var w = Math.abs(curBox.w);
+      var h = Math.abs(curBox.h);
+      var x = curBox.w < 0 ? curBox.x + curBox.w : curBox.x;
+      var y = curBox.h < 0 ? curBox.y + curBox.h : curBox.y;
+      curBox = null;
+      if (w >= 6 && h >= 6) {
+        if (typeof FillEngine !== 'undefined' && FillEngine.getMode() === 'patch' && FillEngine.isPatchSelecting()) {
+          FillEngine.setPatchSource({ x: x, y: y, w: w, h: h });
+          App.redraw();
+        } else if (!document.getElementById('fp').classList.contains('open')) {
+          if (onBoxDraw) onBoxDraw(x, y, w, h);
+        }
+      } else {
+        App.redraw();
+      }
     }
   }
 

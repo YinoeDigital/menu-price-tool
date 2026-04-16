@@ -1,4 +1,4 @@
 {
-  "version": "1.2.3",
-  "note": "修復：FillEngine 預設模式改為 autofill，解決初次進入時框選無法呼叫編輯視窗的問題"
+  "version": "1.2.4",
+  "note": "修復：onWindowMouseUp 補上 drawing 狀態處理，解決來源選取拖拉超出 canvas 時 patchSelecting 卡住導致後續矩形無法開啟編輯視窗的問題；恢復 FillEngine 預設模式為 patch"
 }
