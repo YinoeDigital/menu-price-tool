@@ -3,7 +3,7 @@
 var FillEngine = (function () {
 
   // 目前模式：'autofill' | 'patch'
-  var mode = 'patch';
+  var mode = 'autofill';
 
   // 補丁模式：來源矩形
   var patchSource = null;
