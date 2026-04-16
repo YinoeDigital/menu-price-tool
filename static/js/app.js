@@ -137,25 +137,28 @@ var App = (function() {
           var ch = box.h / ns.length;
           var fs = box.fontSize > 0 ? box.fontSize : Math.min(ch * 0.88, box.w * 0.92);
           ctx.font = bStyle + Math.round(fs) + "px '" + font + "',serif";
-          ctx.fillStyle = tc; ctx.textAlign = 'center';
+          ctx.fillStyle = tc; ctx.textAlign = bAlign;
+          var charX = bAlign === 'right' ? box.x + box.w - 3 : bAlign === 'left' ? box.x + 3 : box.x + box.w / 2;
           for (var ci = 0; ci < ns.length; ci++) {
-            ctx.fillText(ns[ci], box.x + box.w / 2, box.y + ch * (ci + 0.8));
+            ctx.fillText(ns[ci], charX, box.y + ch * (ci + 0.8));
           }
         } else {
           var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
           ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
-          ctx.fillStyle = tc; ctx.textBaseline = 'middle';
+          var vAl = box.verticalAlign || 'middle';
+          var ty  = vAl === 'top' ? box.y + Math.round(fs2 * 0.82) : box.y + box.h / 2;
+          ctx.fillStyle = tc; ctx.textBaseline = vAl === 'top' ? 'alphabetic' : 'middle';
           var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
           ctx.textAlign = bAlign;
-          ctx.fillText(String(nv), tx, box.y + box.h / 2);
+          ctx.fillText(String(nv), tx, ty);
           // 雙刪除線
           if (box.strikethrough) {
             var tw = ctx.measureText(String(nv)).width;
             var lx0 = bAlign === 'left' ? tx : bAlign === 'right' ? tx - tw : tx - tw / 2;
             var lw2 = Math.max(1, fs2 * 0.07);
             ctx.strokeStyle = tc; ctx.lineWidth = lw2; ctx.setLineDash([]);
-            ctx.beginPath(); ctx.moveTo(lx0, box.y + box.h / 2 - fs2 * 0.12); ctx.lineTo(lx0 + tw, box.y + box.h / 2 - fs2 * 0.12); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(lx0, box.y + box.h / 2 + fs2 * 0.08); ctx.lineTo(lx0 + tw, box.y + box.h / 2 + fs2 * 0.08); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(lx0, ty - fs2 * 0.12); ctx.lineTo(lx0 + tw, ty - fs2 * 0.12); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(lx0, ty + fs2 * 0.08); ctx.lineTo(lx0 + tw, ty + fs2 * 0.08); ctx.stroke();
           }
           ctx.textBaseline = 'alphabetic';
         }
@@ -336,24 +339,27 @@ var App = (function() {
         var ch = box.h / ns.length;
         var fs = box.fontSize > 0 ? box.fontSize : Math.min(ch * 0.88, box.w * 0.92);
         oc.font = bStyle2 + Math.round(fs) + "px '" + font + "',serif";
-        oc.fillStyle = tc; oc.textAlign = 'center';
+        oc.fillStyle = tc; oc.textAlign = bAlign2;
+        var charX2 = bAlign2 === 'right' ? box.x + box.w - 3 : bAlign2 === 'left' ? box.x + 3 : box.x + box.w / 2;
         for (var ci = 0; ci < ns.length; ci++) {
-          oc.fillText(ns[ci], box.x + box.w / 2, box.y + ch * (ci + 0.8));
+          oc.fillText(ns[ci], charX2, box.y + ch * (ci + 0.8));
         }
       } else {
         var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
         oc.font = bStyle2 + Math.round(fs2) + "px '" + font + "',serif";
-        oc.fillStyle = tc; oc.textBaseline = 'middle';
+        var vAl2 = box.verticalAlign || 'middle';
+        var ty2  = vAl2 === 'top' ? box.y + Math.round(fs2 * 0.82) : box.y + box.h / 2;
+        oc.fillStyle = tc; oc.textBaseline = vAl2 === 'top' ? 'alphabetic' : 'middle';
         var tx2 = bAlign2 === 'left' ? box.x + 4 : bAlign2 === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
         oc.textAlign = bAlign2;
-        oc.fillText(String(nv), tx2, box.y + box.h / 2);
+        oc.fillText(String(nv), tx2, ty2);
         if (box.strikethrough) {
           var tw2 = oc.measureText(String(nv)).width;
           var lx2 = bAlign2 === 'left' ? tx2 : bAlign2 === 'right' ? tx2 - tw2 : tx2 - tw2 / 2;
           var lw3 = Math.max(1, fs2 * 0.07);
           oc.strokeStyle = tc; oc.lineWidth = lw3; oc.setLineDash([]);
-          oc.beginPath(); oc.moveTo(lx2, box.y + box.h / 2 - fs2 * 0.12); oc.lineTo(lx2 + tw2, box.y + box.h / 2 - fs2 * 0.12); oc.stroke();
-          oc.beginPath(); oc.moveTo(lx2, box.y + box.h / 2 + fs2 * 0.08); oc.lineTo(lx2 + tw2, box.y + box.h / 2 + fs2 * 0.08); oc.stroke();
+          oc.beginPath(); oc.moveTo(lx2, ty2 - fs2 * 0.12); oc.lineTo(lx2 + tw2, ty2 - fs2 * 0.12); oc.stroke();
+          oc.beginPath(); oc.moveTo(lx2, ty2 + fs2 * 0.08); oc.lineTo(lx2 + tw2, ty2 + fs2 * 0.08); oc.stroke();
         }
         oc.textBaseline = 'alphabetic';
       }
@@ -582,40 +588,115 @@ var App = (function() {
     setTimeout(function() { Canvas.fitToWindow(); }, 300);
   }
 
-  // ── AI渲染：邊緣智慧融合 ──
+  // ── AI渲染：自動對齊偵測 + 掃描線動畫 + 邊緣融合 ──
   function enhanceQuality() {
     var img = Canvas.getImage();
     if (!img) { setSt('請先上傳菜單圖片'); return; }
     if (!boxes.length) { setSt('尚未設置任何價格框'); return; }
 
     var btn = document.getElementById('tbEnhance');
-    if (btn) { btn.disabled = true; btn.textContent = '處理中…'; }
-    setSt('✨ AI渲染處理中，請稍候…');
+    if (btn) btn.disabled = true;
 
-    // 先正常 redraw（會重置 flag），再套用融合
+    // Step 1：偵測垂直欄/水平列，自動套用靠右/靠上對齊
+    detectColumnAlignment();
+
+    // Step 2：重新繪製（帶新對齊方式；會同時重置 enhancementApplied flag）
     redraw();
+    setSt('✨ AI渲染掃描中…');
 
     setTimeout(function() {
       var canvas = Canvas.getCanvas();
-      var ctx = Canvas.getCtx();
+      var ctx    = Canvas.getCtx();
+      var sortedBoxes = boxes.slice().sort(function(a, b) { return a.y - b.y; });
 
-      // 建立原始圖像的離屏參照
       var origC = document.createElement('canvas');
       origC.width = img.width; origC.height = img.height;
       origC.getContext('2d').drawImage(img, 0, 0);
 
-      for (var i = 0; i < boxes.length; i++) {
-        blendBoxEdge(ctx, canvas, origC, boxes[i]);
-      }
+      // ── 建立掃描線 overlay ──
+      var cw = document.getElementById('cw');
+      var cwRect    = cw.getBoundingClientRect();
+      var canvasRect = canvas.getBoundingClientRect();
+      var ctop  = (canvasRect.top  - cwRect.top)  + cw.scrollTop;
+      var cleft = (canvasRect.left - cwRect.left) + cw.scrollLeft;
+      var cdH = canvasRect.height;
+      var cdW = canvasRect.width;
 
-      enhancementApplied = true;
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI渲染';
-        btn.classList.add('active');
+      var ov = document.createElement('div');
+      ov.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:50;overflow:hidden;';
+      var scanEl = document.createElement('div');
+      scanEl.className = 'scan-line-el';
+      scanEl.style.left  = cleft + 'px';
+      scanEl.style.width = cdW   + 'px';
+      scanEl.style.top   = ctop  + 'px';
+      ov.appendChild(scanEl);
+      cw.appendChild(ov);
+
+      var DURATION  = 1200; // ms，掃描總時長
+      var startTime = null;
+      var done = {};
+
+      function animFrame(ts) {
+        if (!startTime) startTime = ts;
+        var progress = Math.min((ts - startTime) / DURATION, 1);
+
+        // 更新掃描線位置
+        scanEl.style.top = (ctop + progress * cdH) + 'px';
+
+        // 已掃到的 box 就進行邊緣融合
+        var canvasY = progress * canvas.height;
+        for (var i = 0; i < sortedBoxes.length; i++) {
+          var box = sortedBoxes[i];
+          if (!done[box.id] && (box.y + box.h * 0.5) <= canvasY) {
+            done[box.id] = true;
+            blendBoxEdge(ctx, canvas, origC, box);
+          }
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animFrame);
+        } else {
+          cw.removeChild(ov);
+          enhancementApplied = true;
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI渲染';
+            btn.classList.add('active');
+          }
+          setSt('✅ AI渲染完成 — 自動對齊 + 邊界融合已套用，匯出時同步生效');
+        }
       }
-      setSt('✅ AI渲染完成 — 已消除 ' + boxes.length + ' 個框的邊界感，匯出圖片將同步套用');
+      requestAnimationFrame(animFrame);
     }, 60);
+  }
+
+  // ── 自動對齊偵測：垂直欄→靠右，水平列→靠上 ──
+  function detectColumnAlignment() {
+    if (boxes.length < 2) return;
+    var X_THRESH = 50, Y_THRESH = 40, MIN_GRP = 2;
+    var inCol = {}, inRow = {};
+
+    // 找垂直欄（center-X 相近）
+    boxes.forEach(function(b) {
+      if (inCol[b.id]) return;
+      var cx = b.x + b.w / 2;
+      var grp = boxes.filter(function(b2) { return Math.abs((b2.x + b2.w / 2) - cx) < X_THRESH; });
+      if (grp.length >= MIN_GRP) grp.forEach(function(b2) { inCol[b2.id] = true; });
+    });
+
+    // 找水平列（center-Y 相近，且不在垂直欄內）
+    boxes.forEach(function(b) {
+      if (inRow[b.id] || inCol[b.id]) return;
+      var cy = b.y + b.h / 2;
+      var grp = boxes.filter(function(b2) { return !inCol[b2.id] && Math.abs((b2.y + b2.h / 2) - cy) < Y_THRESH; });
+      if (grp.length >= MIN_GRP) grp.forEach(function(b2) { inRow[b2.id] = true; });
+    });
+
+    // 套用對齊
+    boxes.forEach(function(box) {
+      if (inCol[box.id])      { box.textAlign = 'right'; }
+      else if (inRow[box.id]) { box.verticalAlign = 'top'; }
+    });
   }
 
   // 核心像素融合：對單一 box 的邊緣做 smoothstep 融合（保護文字像素）
@@ -677,9 +758,13 @@ var App = (function() {
 
         var pi = (py * rw + px) * 4;
 
-        // 判斷是否為文字像素：與填充色色差過大則跳過
+        // 判斷是否為新文字像素（合成圖中）：色差過大則跳過
         var dr = cd[pi] - fillR, dg = cd[pi+1] - fillG, db = cd[pi+2] - fillB;
-        if ((dr*dr + dg*dg + db*db) > 5000) continue;  // √5000 ≈ 70 色差閾值
+        if ((dr*dr + dg*dg + db*db) > 5000) continue;
+
+        // 關鍵修正：若原始圖片該位置是深色文字，絕對不能融入（避免舊數字透出）
+        var oDr = od[pi] - fillR, oDg = od[pi+1] - fillG, oDb = od[pi+2] - fillB;
+        if ((oDr*oDr + oDg*oDg + oDb*oDb) > 3600) continue; // 原始像素是文字色 → 保持新覆蓋
 
         // Smoothstep：dist=0 時 keep=0（完全融入原始），dist=FEATHER 時 keep=1（完全保持）
         var t = dist / FEATHER;

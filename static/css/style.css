@@ -137,6 +137,14 @@ select:focus,input:focus{border-color:var(--red);}
 .btn-ghost:hover{background:var(--cream);}
 .btn-apply-all{background:#F5EEF8;color:#7D3C98 !important;border:1.5px solid #C39BD3;}
 .btn-apply-all:hover{background:#EBD5F5;border-color:#7D3C98;}
+/* ── AI渲染掃描線 ── */
+.scan-line-el{
+  position:absolute;height:4px;border-radius:2px;
+  background:linear-gradient(90deg,transparent 0%,rgba(26,127,90,0.35) 15%,rgba(80,220,150,0.95) 50%,rgba(26,127,90,0.35) 85%,transparent 100%);
+  box-shadow:0 0 14px rgba(60,200,120,0.65),0 0 3px rgba(255,255,255,0.7);
+  pointer-events:none;
+}
+
 .btn-enhance{background:#EAF6F1;color:#1A7F5A !important;border:1.5px solid #82CDB0;}
 .btn-enhance svg{stroke:#1A7F5A;}
 .btn-enhance:hover{background:#D4EEE4;border-color:#1A7F5A;}
