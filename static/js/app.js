@@ -7,6 +7,7 @@ var App = (function() {
   var currentImgB64 = null;
   var hist = [];
   var confirmCB = null;
+  var enhancementApplied = false;
 
   try { hist = JSON.parse(localStorage.getItem('mhist') || '[]'); } catch(e) {}
 
@@ -83,6 +84,12 @@ var App = (function() {
   }
 
   function redraw() {
+    // Reset enhancement flag when canvas is re-rendered from scratch
+    if (enhancementApplied) {
+      enhancementApplied = false;
+      var eb = document.getElementById('tbEnhance');
+      if (eb) eb.classList.remove('active');
+    }
     var img = Canvas.getImage();
     if (!img) return;
     var ctx = Canvas.getCtx();
@@ -352,6 +359,15 @@ var App = (function() {
       }
       if ('letterSpacing' in oc) oc.letterSpacing = '0px';
     }
+    // 如已套用 AI渲染，匯出時同樣處理邊緣融合
+    if (enhancementApplied) {
+      var origC3 = document.createElement('canvas');
+      origC3.width = img.width; origC3.height = img.height;
+      origC3.getContext('2d').drawImage(img, 0, 0);
+      for (var ei = 0; ei < boxes.length; ei++) {
+        blendBoxEdge(oc, off, origC3, boxes[ei]);
+      }
+    }
     var fmt = mc.dataset.fmt || 'png';
     var mm = { jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', png: 'image/png' };
     var a = document.createElement('a');
@@ -566,6 +582,118 @@ var App = (function() {
     setTimeout(function() { Canvas.fitToWindow(); }, 300);
   }
 
+  // ── AI渲染：邊緣智慧融合 ──
+  function enhanceQuality() {
+    var img = Canvas.getImage();
+    if (!img) { setSt('請先上傳菜單圖片'); return; }
+    if (!boxes.length) { setSt('尚未設置任何價格框'); return; }
+
+    var btn = document.getElementById('tbEnhance');
+    if (btn) { btn.disabled = true; btn.textContent = '處理中…'; }
+    setSt('✨ AI渲染處理中，請稍候…');
+
+    // 先正常 redraw（會重置 flag），再套用融合
+    redraw();
+
+    setTimeout(function() {
+      var canvas = Canvas.getCanvas();
+      var ctx = Canvas.getCtx();
+
+      // 建立原始圖像的離屏參照
+      var origC = document.createElement('canvas');
+      origC.width = img.width; origC.height = img.height;
+      origC.getContext('2d').drawImage(img, 0, 0);
+
+      for (var i = 0; i < boxes.length; i++) {
+        blendBoxEdge(ctx, canvas, origC, boxes[i]);
+      }
+
+      enhancementApplied = true;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI渲染';
+        btn.classList.add('active');
+      }
+      setSt('✅ AI渲染完成 — 已消除 ' + boxes.length + ' 個框的邊界感，匯出圖片將同步套用');
+    }, 60);
+  }
+
+  // 核心像素融合：對單一 box 的邊緣做 smoothstep 融合（保護文字像素）
+  function blendBoxEdge(ctx, canvas, origC, box) {
+    var FEATHER = Math.min(14, Math.max(6, Math.round(Math.min(box.w, box.h) * 0.22)));
+    var x = Math.round(box.x), y = Math.round(box.y);
+    var w = Math.round(box.w), h = Math.round(box.h);
+    if (w <= 2 || h <= 2) return;
+
+    // 取涵蓋羽化帶的最大範圍
+    var rx = Math.max(0, x - 1);
+    var ry = Math.max(0, y - 1);
+    var rw = Math.min(canvas.width - rx, w + 2);
+    var rh = Math.min(canvas.height - ry, h + 2);
+    if (rw <= 0 || rh <= 0) return;
+
+    // 讀取合成後像素 & 原始像素
+    var composite = ctx.getImageData(rx, ry, rw, rh);
+    var origCtx   = origC.getContext('2d');
+    var original  = origCtx.getImageData(rx, ry, rw, rh);
+    var cd = composite.data;
+    var od = original.data;
+
+    // 從 box 中心安全帶取樣填充色（排除文字像素）
+    var sm = Math.max(2, Math.min(FEATHER, Math.floor(Math.min(w, h) * 0.3)));
+    var srx = Math.max(0, x - rx + sm), sry = Math.max(0, y - ry + sm);
+    var srw = Math.max(1, w - sm * 2), srh = Math.max(1, h - sm * 2);
+    var rArr = [], gArr = [], bArr = [];
+    for (var sy = 0; sy < srh; sy++) {
+      for (var sx = 0; sx < srw; sx++) {
+        var si = ((sry + sy) * rw + (srx + sx)) * 4;
+        var sl = 0.299 * cd[si] + 0.587 * cd[si+1] + 0.114 * cd[si+2];
+        if (sl > 25 && sl < 238) {
+          rArr.push(cd[si]); gArr.push(cd[si+1]); bArr.push(cd[si+2]);
+        }
+      }
+    }
+    rArr.sort(function(a,b){return a-b;});
+    gArr.sort(function(a,b){return a-b;});
+    bArr.sort(function(a,b){return a-b;});
+    var mid = Math.floor(rArr.length / 2);
+    var fillR = rArr[mid] !== undefined ? rArr[mid] : 220;
+    var fillG = gArr[mid] !== undefined ? gArr[mid] : 220;
+    var fillB = bArr[mid] !== undefined ? bArr[mid] : 220;
+
+    // 對 box 邊緣 FEATHER px 內的背景像素做漸進融合
+    for (var py = 0; py < rh; py++) {
+      for (var px = 0; px < rw; px++) {
+        var absX = rx + px, absY = ry + py;
+
+        // 只處理 box 內部像素
+        if (absX < x || absX >= x + w || absY < y || absY >= y + h) continue;
+
+        // 到最近邊緣的距離
+        var dL = absX - x, dR = (x + w - 1) - absX;
+        var dT = absY - y, dB = (y + h - 1) - absY;
+        var dist = Math.min(dL, dR, dT, dB);
+        if (dist >= FEATHER) continue;   // 深入內部，不處理
+
+        var pi = (py * rw + px) * 4;
+
+        // 判斷是否為文字像素：與填充色色差過大則跳過
+        var dr = cd[pi] - fillR, dg = cd[pi+1] - fillG, db = cd[pi+2] - fillB;
+        if ((dr*dr + dg*dg + db*db) > 5000) continue;  // √5000 ≈ 70 色差閾值
+
+        // Smoothstep：dist=0 時 keep=0（完全融入原始），dist=FEATHER 時 keep=1（完全保持）
+        var t = dist / FEATHER;
+        var keep = t * t * (3 - 2 * t);
+        var mix  = 1 - keep;
+
+        cd[pi]   = Math.round(cd[pi]   * keep + od[pi]   * mix) | 0;
+        cd[pi+1] = Math.round(cd[pi+1] * keep + od[pi+1] * mix) | 0;
+        cd[pi+2] = Math.round(cd[pi+2] * keep + od[pi+2] * mix) | 0;
+      }
+    }
+    ctx.putImageData(composite, rx, ry);
+  }
+
   // ── OCR 價格識別 ──
   var ocrWorker = null;
   var ocrReady = false;
@@ -699,6 +827,7 @@ var App = (function() {
     setTipsOS: setTipsOS,
     applyFontToAll: applyFontToAll,
     isOcrReady: isOcrReady,
-    detectPrice: detectPrice
+    detectPrice: detectPrice,
+    enhanceQuality: enhanceQuality
   };
 })();

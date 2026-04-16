@@ -137,6 +137,12 @@ select:focus,input:focus{border-color:var(--red);}
 .btn-ghost:hover{background:var(--cream);}
 .btn-apply-all{background:#F5EEF8;color:#7D3C98 !important;border:1.5px solid #C39BD3;}
 .btn-apply-all:hover{background:#EBD5F5;border-color:#7D3C98;}
+.btn-enhance{background:#EAF6F1;color:#1A7F5A !important;border:1.5px solid #82CDB0;}
+.btn-enhance svg{stroke:#1A7F5A;}
+.btn-enhance:hover{background:#D4EEE4;border-color:#1A7F5A;}
+.btn-enhance.active{background:#1A7F5A;color:#fff !important;border-color:#1A7F5A;}
+.btn-enhance.active svg{stroke:#fff;}
+.btn-enhance:disabled{opacity:.6;cursor:not-allowed;}
 .btn-sm{padding:6px 10px;font-size:12px;}
 
 /* Orientation buttons */
