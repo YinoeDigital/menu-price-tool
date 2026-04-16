@@ -362,10 +362,8 @@ select:focus,input:focus{border-color:var(--red);}
 }
 .sdot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;}
 .ver-badge{
-  font-size:10px;font-weight:500;color:var(--gmd);
-  background:var(--cream);border:1px solid var(--glt);
-  border-radius:99px;padding:1px 7px;flex-shrink:0;
-  letter-spacing:.03em;
+  font-size:10px;font-weight:500;color:var(--red);
+  flex-shrink:0;letter-spacing:.03em;
 }
 
 /* ── UPDATE TOAST ── */
