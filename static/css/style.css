@@ -436,8 +436,8 @@ select:focus,input:focus{border-color:var(--red);}
 }
 .fp-input:focus{border-color:var(--red);}
 .fp-input.err{border-color:#e74c3c;background:#fff5f5;}
-.fp-yuan-lbl{display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--gdk);user-select:none;flex-shrink:0;}
-.fp-yuan-lbl input[type=checkbox]{width:13px;height:13px;accent-color:var(--red);cursor:pointer;flex-shrink:0;}
+.fp-affix-sel{flex-shrink:0;font-size:12px;padding:5px 6px;border:1px solid var(--glt);border-radius:var(--r);background:var(--bg);color:var(--gdk);cursor:pointer;outline:none;height:34px;}
+.fp-affix-sel:focus{border-color:var(--red);}
 .fp-info{background:var(--cream);border-radius:var(--r);padding:7px 10px;border:1px solid var(--glt);}
 .fi-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:2px 0;}
 .fi-lbl{color:var(--gmd);}

@@ -128,7 +128,8 @@ var App = (function() {
         }
         var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
         var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
-        var ns = box.showYuan ? String(nv) + ' 元' : String(nv);
+        var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
+        var ns = _affix === 'yuan' ? String(nv) + ' 元' : _affix === 'dollar' ? '$' + String(nv) : String(nv);
         var bls = (box.letterSpacing || 0) + 'px';
         var bStyle = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
         var bAlign = box.textAlign || 'center';
@@ -330,7 +331,8 @@ var App = (function() {
       }
       var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
       var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
-      var ns = box.showYuan ? String(nv) + ' 元' : String(nv);
+      var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
+      var ns = _affix === 'yuan' ? String(nv) + ' 元' : _affix === 'dollar' ? '$' + String(nv) : String(nv);
       var bls2 = (box.letterSpacing || 0) + 'px';
       var bStyle2 = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
       var bAlign2 = box.textAlign || 'center';
