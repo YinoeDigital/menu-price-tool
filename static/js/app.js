@@ -128,7 +128,7 @@ var App = (function() {
         }
         var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
         var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
-        var ns = String(nv);
+        var ns = box.showYuan ? String(nv) + ' 元' : String(nv);
         var bls = (box.letterSpacing || 0) + 'px';
         var bStyle = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
         var bAlign = box.textAlign || 'center';
@@ -150,10 +150,10 @@ var App = (function() {
           ctx.fillStyle = tc; ctx.textBaseline = vAl === 'top' ? 'alphabetic' : 'middle';
           var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
           ctx.textAlign = bAlign;
-          ctx.fillText(String(nv), tx, ty);
+          ctx.fillText(ns, tx, ty);
           // 雙刪除線
           if (box.strikethrough) {
-            var tw = ctx.measureText(String(nv)).width;
+            var tw = ctx.measureText(ns).width;
             var lx0 = bAlign === 'left' ? tx : bAlign === 'right' ? tx - tw : tx - tw / 2;
             var lw2 = Math.max(1, fs2 * 0.07);
             ctx.strokeStyle = tc; ctx.lineWidth = lw2; ctx.setLineDash([]);
@@ -330,7 +330,7 @@ var App = (function() {
       }
       var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
       var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
-      var ns = String(nv);
+      var ns = box.showYuan ? String(nv) + ' 元' : String(nv);
       var bls2 = (box.letterSpacing || 0) + 'px';
       var bStyle2 = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
       var bAlign2 = box.textAlign || 'center';
@@ -352,9 +352,9 @@ var App = (function() {
         oc.fillStyle = tc; oc.textBaseline = vAl2 === 'top' ? 'alphabetic' : 'middle';
         var tx2 = bAlign2 === 'left' ? box.x + 4 : bAlign2 === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
         oc.textAlign = bAlign2;
-        oc.fillText(String(nv), tx2, ty2);
+        oc.fillText(ns, tx2, ty2);
         if (box.strikethrough) {
-          var tw2 = oc.measureText(String(nv)).width;
+          var tw2 = oc.measureText(ns).width;
           var lx2 = bAlign2 === 'left' ? tx2 : bAlign2 === 'right' ? tx2 - tw2 : tx2 - tw2 / 2;
           var lw3 = Math.max(1, fs2 * 0.07);
           oc.strokeStyle = tc; oc.lineWidth = lw3; oc.setLineDash([]);
@@ -836,7 +836,23 @@ var App = (function() {
     }
 
     ocrWorker.recognize(tmp).then(function(result) {
-      var digits = (result.data.text || '').replace(/[^0-9]/g, '');
+      var digits = '';
+      var CONF_THRESH = 65; // 低於此信心值視為非數字字元（元、$、¥ 等被強行對應的結果）
+      // 優先使用逐字元信心度過濾：避免「元」被誤讀為「7」等情況
+      var words = (result.data && result.data.words) ? result.data.words : [];
+      for (var wi = 0; wi < words.length; wi++) {
+        var syms = words[wi].symbols || [];
+        for (var si = 0; si < syms.length; si++) {
+          var sym = syms[si];
+          if (/^[0-9]$/.test(sym.text) && sym.confidence >= CONF_THRESH) {
+            digits += sym.text;
+          }
+        }
+      }
+      // 若 Tesseract 版本不提供 symbol 資料，退回純文字（去除非數字）
+      if (!digits && result.data && result.data.text) {
+        digits = result.data.text.replace(/[^0-9]/g, '');
+      }
       var num = parseInt(digits, 10);
       if (num > 0 && num < 1000000) { cb(num); }
       else { cb(null); }

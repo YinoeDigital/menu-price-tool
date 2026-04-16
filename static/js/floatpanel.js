@@ -14,6 +14,8 @@ var FloatPanel = (function() {
   var pendingBox = null;
   var fpOrient = 'vertical';
   var fpGroup = null;
+  var _pollTimer = null;
+  var _pollLast = '';
   var editingId = null;
   var stickyFontSize = 0;
   var stickyRound10 = false;
@@ -25,6 +27,7 @@ var FloatPanel = (function() {
   var stickyItalic = false;
   var stickyStrikethrough = false;
   var stickyTextAlign = 'center'; // 'left' | 'center' | 'right'
+  var stickyShowYuan = false;
 
   function init() {
     var valEl = document.getElementById('fpVal');
@@ -35,20 +38,41 @@ var FloatPanel = (function() {
       this.classList.remove('err');
     });
 
-    // 千分位格式化：只在離開欄位時套用，不干擾輸入過程
-    valEl.addEventListener('blur', function() {
-      var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
-      if (raw) this.value = formatCommas(parseInt(raw, 10));
+    // keyup：補捉 input 未觸發的情況（如 OCR 填入後 select-all 覆蓋的第一個按鍵）
+    valEl.addEventListener('keyup', function() {
+      updateNewPrice();
+      this.classList.remove('err');
     });
 
-    // change: 貼上 / 外部賦值補捉
+    // 千分位格式化：只在離開欄位時套用，不干擾輸入過程
+    valEl.addEventListener('blur', function() {
+      // 停止輪詢
+      if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+      var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
+      if (raw) this.value = formatCommas(parseInt(raw, 10));
+      updateNewPrice();
+    });
+
+    // change: 貼上 / 外部賦值補捉（失焦時再確認一次）
     valEl.addEventListener('change', function() {
       updateNewPrice();
       this.classList.remove('err');
     });
 
-    // 聚焦時全選（方便快速覆蓋）
-    valEl.addEventListener('focus', function() { this.select(); });
+    // 聚焦時全選 + 啟動輪詢（防止 input/keyup 未觸發時的漏網）
+    valEl.addEventListener('focus', function() {
+      this.select();
+      _pollLast = this.value;
+      if (_pollTimer) clearInterval(_pollTimer);
+      _pollTimer = setInterval(function() {
+        var cur = valEl.value;
+        if (cur !== _pollLast) {
+          _pollLast = cur;
+          updateNewPrice();
+          valEl.classList.remove('err');
+        }
+      }, 80);
+    });
 
     valEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') confirm();
@@ -146,6 +170,7 @@ var FloatPanel = (function() {
     setAlignUI(stickyTextAlign);
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
+    document.getElementById('ckYuan').checked    = stickyShowYuan;
     updateGroupInfo();
     Groups.renderChips(fpGroup);
     document.getElementById('fpCalc').textContent = '—';
@@ -163,9 +188,10 @@ var FloatPanel = (function() {
         fpValEl.placeholder = '例：880';
         if (num && !fpValEl.value) {
           fpValEl.value = formatCommas(num);
+          fpValEl.focus();   // 確保焦點在欄位上（觸發 focus → 啟動輪詢 + select）
           updateNewPrice();
+          _pollLast = fpValEl.value; // 同步輪詢基準值，避免立刻誤判為「有變動」
           App.setSt('✦ 識別到價格：' + num + '，如有誤請直接修改');
-          fpValEl.select();
         } else {
           App.setSt('請在左側面板輸入原始價格數值');
         }
@@ -196,6 +222,7 @@ var FloatPanel = (function() {
     setAlignUI(box.textAlign || stickyTextAlign);
     document.getElementById('ckRound10').checked = stickyRound10;
     document.getElementById('ckRound5').checked  = stickyRound5;
+    document.getElementById('ckYuan').checked    = box.showYuan || false;
     updateGroupInfo();
     Groups.renderChips(fpGroup);
     document.getElementById('fpVal').value = formatCommas(box.value);
@@ -221,6 +248,7 @@ var FloatPanel = (function() {
   }
 
   function close() {
+    if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
     document.getElementById('fp').classList.remove('open');
     document.getElementById('fp').querySelector('.fp-title').textContent = '輸入價格資訊';
     pendingBox = null;
@@ -265,6 +293,10 @@ var FloatPanel = (function() {
     // 讀取字體顏色
     var fontColor = stickyFontColor; // '' = 自動
 
+    // 讀取「元」後綴選項
+    var showYuan = document.getElementById('ckYuan').checked;
+    stickyShowYuan = showYuan;
+
     // 讀取最終新價格（可能是使用者手動覆蓋的）
     var newValInput = parseInt(document.getElementById('fpNew').value);
     var newValue = (newValInput > 0) ? newValInput : calcNewPrice(v);
@@ -276,7 +308,8 @@ var FloatPanel = (function() {
         value: v, orient: fpOrient, group: fpGroup,
         fontSize: fontSize, newValue: newValue, fontColor: fontColor,
         fontFamily: stickyFontFamily, letterSpacing: letterSpacing,
-        bold: bold, italic: italic, strikethrough: strikethrough, textAlign: textAlign
+        bold: bold, italic: italic, strikethrough: strikethrough, textAlign: textAlign,
+        showYuan: showYuan
       });
       document.getElementById('fp').querySelector('.fp-title').textContent = '輸入價格資訊';
       App.setSt('已更新價格：' + v + ' → ' + newValue);
@@ -289,6 +322,7 @@ var FloatPanel = (function() {
         fontSize: fontSize, newValue: newValue, fontColor: fontColor,
         fontFamily: stickyFontFamily, letterSpacing: letterSpacing,
         bold: bold, italic: italic, strikethrough: strikethrough, textAlign: textAlign,
+        showYuan: showYuan,
         fillMode: currentMode,
         patchSource: (currentMode === 'patch' && typeof FillEngine !== 'undefined') ? FillEngine.getPatchSource() : null
       });
@@ -359,6 +393,11 @@ var FloatPanel = (function() {
   function setAlign(a) {
     stickyTextAlign = a;
     setAlignUI(a);
+  }
+
+  function onYuanChange() {
+    stickyShowYuan = document.getElementById('ckYuan').checked;
+    if (App.isPreview()) App.redraw();
   }
 
   function applyToAll() {
@@ -443,6 +482,7 @@ var FloatPanel = (function() {
     toggleItalic: toggleItalic,
     toggleStrikethrough: toggleStrikethrough,
     setAlign: setAlign,
+    onYuanChange: onYuanChange,
     applyToAll: applyToAll,
     getGroup: getGroup,
     getStickyFontSize: getStickyFontSize,
