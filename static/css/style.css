@@ -507,6 +507,15 @@ select:focus,input:focus{border-color:var(--red);}
   100%{box-shadow:0 0 0 0 rgba(192,57,43,0);}
 }
 .patch-hint-required.pulse{animation:patchPulse .6s ease-out 2;}
+@keyframes patchShake{
+  0%,100%{transform:translateX(0);}
+  15%{transform:translateX(-6px);}
+  30%{transform:translateX(6px);}
+  50%{transform:translateX(-4px);}
+  70%{transform:translateX(4px);}
+  85%{transform:translateX(-2px);}
+}
+.shake{animation:patchShake .45s ease;}
 
 /* ── 字樣設定卡片 ── */
 .fp-card{

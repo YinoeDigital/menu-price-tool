@@ -179,14 +179,19 @@ var Canvas = (function() {
 
     if (document.getElementById('fp').classList.contains('open')) return;
 
-    // 若紋理補丁模式但尚未設定來源 → 自動進入來源選取，讓使用者直接拖拉框選
+    // 若紋理補丁模式但尚未設定來源 → 抖動提示，阻擋繪製
     if (typeof FillEngine !== 'undefined' &&
         FillEngine.getMode() === 'patch' &&
         !FillEngine.getPatchSource() &&
         !FillEngine.isPatchSelecting()) {
-      FillEngine.setPatchSelecting(true);
-      App.setSt('📐 請拖拉框選紋理補丁來源區域');
-      // 繼續執行：讓這次拖拉直接作為來源選取
+      App.setSt('⚠️ 請先點擊「點此選取來源」設定紋理補丁來源區域');
+      var patchCard = document.getElementById('patch-hint');
+      if (patchCard) {
+        patchCard.classList.add('needs-source', 'shake');
+        setTimeout(function() { patchCard.classList.remove('shake'); }, 500);
+      }
+      e.preventDefault();
+      return;
     }
 
     // 普通點擊：小移動 = 點擊編輯（mouseup 觸發），大移動 = 繪製新框
@@ -277,9 +282,21 @@ var Canvas = (function() {
     }
     App.redraw();
     if (curBox.w !== 0 && curBox.h !== 0) {
-      ctx.strokeStyle = (shiftHeld && lastW > 0) ? '#2980B9' : '#C0392B';
-      ctx.lineWidth = 2 / zoomLevel;
-      ctx.setLineDash([5 / zoomLevel, 3 / zoomLevel]);
+      var isPatchSel = typeof FillEngine !== 'undefined' && FillEngine.isPatchSelecting();
+      if (isPatchSel) {
+        // 黑色框：來源選取模式（與紅色價格框做出區別）
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 2 / zoomLevel;
+        ctx.setLineDash([6 / zoomLevel, 4 / zoomLevel]);
+      } else if (shiftHeld && lastW > 0) {
+        ctx.strokeStyle = '#2980B9';
+        ctx.lineWidth = 2 / zoomLevel;
+        ctx.setLineDash([5 / zoomLevel, 3 / zoomLevel]);
+      } else {
+        ctx.strokeStyle = '#C0392B';
+        ctx.lineWidth = 2 / zoomLevel;
+        ctx.setLineDash([5 / zoomLevel, 3 / zoomLevel]);
+      }
       ctx.strokeRect(curBox.x, curBox.y, curBox.w, curBox.h);
       ctx.setLineDash([]);
     }
