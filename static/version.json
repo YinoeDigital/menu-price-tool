@@ -1,4 +1,4 @@
 {
-  "version": "1.5.0",
-  "note": "前後綴溢出背景填色、AI渲染自動開啟預覽、顆粒噪點效果、畫布尺標與參考線、補丁選取流程改善"
+  "version": "1.5.1",
+  "note": "修正 fillAffixOverflow 誤覆蓋 FillEngine 填色：改為只填 box 外側溢出區域，並從 box 邊緣取樣色值"
 }

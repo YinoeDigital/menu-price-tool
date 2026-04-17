@@ -108,20 +108,43 @@ var App = (function() {
   }
 
   // ── 前後綴溢出背景填色 ──
+  // 注意：只填 box 邊界「外側」的溢出部分，不覆蓋 box 內部（FillEngine 已填色）
   function fillAffixOverflow(ctx, ns, tx, box, bgColor) {
     var tw = ctx.measureText(ns).width;
-    var textLeft = ctx.textAlign === 'left' ? tx : ctx.textAlign === 'right' ? tx - tw : tx - tw / 2;
+    var textLeft  = ctx.textAlign === 'left' ? tx : ctx.textAlign === 'right' ? tx - tw : tx - tw / 2;
     var textRight = textLeft + tw;
-    if (textLeft >= box.x && textRight <= box.x + box.w) return; // no overflow
-    var fr = bgColor && bgColor.r !== undefined ? bgColor.r : 220;
-    var fg = bgColor && bgColor.g !== undefined ? bgColor.g : 220;
-    var fb = bgColor && bgColor.b !== undefined ? bgColor.b : 220;
-    var fillLeft  = Math.min(textLeft - 2, box.x);
-    var fillRight = Math.max(textRight + 2, box.x + box.w);
+    var hasLeft  = textLeft  < box.x;
+    var hasRight = textRight > box.x + box.w;
+    if (!hasLeft && !hasRight) return;
+
     ctx.save();
-    ctx.fillStyle = 'rgb(' + fr + ',' + fg + ',' + fb + ')';
-    ctx.fillRect(fillLeft, box.y, fillRight - fillLeft, box.h);
+    // 左側溢出：從 box 左邊向外填
+    if (hasLeft) {
+      // 從 box 左側邊緣取樣填充色（避免硬邊，patch 模式也能取到邊緣紋理色）
+      var lc = _sampleEdge(ctx, box.x + 2, box.y + box.h / 2, bgColor);
+      ctx.fillStyle = lc;
+      ctx.fillRect(textLeft - 2, box.y, box.x - (textLeft - 2), box.h);
+    }
+    // 右側溢出：從 box 右邊向外填
+    if (hasRight) {
+      var rc = _sampleEdge(ctx, box.x + box.w - 3, box.y + box.h / 2, bgColor);
+      ctx.fillStyle = rc;
+      ctx.fillRect(box.x + box.w, box.y, (textRight + 2) - (box.x + box.w), box.h);
+    }
     ctx.restore();
+  }
+
+  // 從 canvas 取樣單一像素色；若越界或失敗則回退到 bgColor
+  function _sampleEdge(ctx, x, y, bgColor) {
+    try {
+      var d = ctx.getImageData(Math.max(0, Math.round(x)), Math.max(0, Math.round(y)), 1, 1).data;
+      return 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
+    } catch(e) {
+      var fr = bgColor && bgColor.r !== undefined ? bgColor.r : 220;
+      var fg = bgColor && bgColor.g !== undefined ? bgColor.g : 220;
+      var fb = bgColor && bgColor.b !== undefined ? bgColor.b : 220;
+      return 'rgb(' + fr + ',' + fg + ',' + fb + ')';
+    }
   }
 
   // ── REDRAW ──
