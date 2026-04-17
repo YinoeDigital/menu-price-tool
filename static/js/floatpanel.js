@@ -34,6 +34,10 @@ var FloatPanel = (function() {
     var el = document.getElementById('fpValCheck');
     if (!el) return;
     el.classList.toggle('active', !!active);
+    // 直接設 style.color 確保 CSS transition 外仍能即時生效
+    el.style.color = active ? '#27AE60' : '#D0D0D0';
+    el.style.cursor = active ? 'default' : 'pointer';
+    el.title = active ? '✓ 數值已記錄' : '點擊確認數值';
   }
 
   function init() {
@@ -47,10 +51,12 @@ var FloatPanel = (function() {
       if (!stripCommas(this.value).replace(/[^0-9]/g, '')) setFpValCheck(false);
     });
 
-    // keyup：補捉 input 未觸發的情況（如 OCR 填入後 select-all 覆蓋的第一個按鍵）
-    valEl.addEventListener('keyup', function() {
+    // keyup：補捉 input 未觸發的情況；同步清空判斷
+    valEl.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') return; // Enter 由 keydown 處理
       updateNewPrice();
       this.classList.remove('err');
+      if (!stripCommas(this.value).replace(/[^0-9]/g, '')) setFpValCheck(false);
     });
 
     // 千分位格式化：只在離開欄位時套用，不干擾輸入過程
@@ -100,6 +106,23 @@ var FloatPanel = (function() {
       }
       if (e.key === 'Escape') reqClose();
     });
+
+    // 打勾 icon 可點擊：灰色時點擊 → 確認當前數值並轉綠
+    var checkEl = document.getElementById('fpValCheck');
+    if (checkEl) {
+      checkEl.addEventListener('click', function() {
+        // 已是綠色（已確認）時不再做事
+        if (this.classList.contains('active')) return;
+        var raw = stripCommas(valEl.value).replace(/[^0-9]/g, '');
+        if (raw) {
+          valEl.value = formatCommas(parseInt(raw, 10));
+          _pollLast = valEl.value;
+          updateNewPrice();
+          setFpValCheck(true);
+          valEl.focus();
+        }
+      });
+    }
 
     // 字體顏色：雙擊還原自動
     document.getElementById('fpFontColor').addEventListener('dblclick', function() {

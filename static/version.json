@@ -1,4 +1,4 @@
 {
-  "version": "1.3.0",
-  "note": "新增：fpVal 右側灰/綠打勾 icon，OCR 偵測成功或手動 Enter 確認後變綠，清空變灰；Enter 改為確認數值並重算（不關閉面板），加入按鈕才確認送出"
+  "version": "1.3.1",
+  "note": "打勾 icon 可點擊（灰→綠確認數值）；清空欄位打勾即時變灰；修正 CSS pointer-events"
 }
