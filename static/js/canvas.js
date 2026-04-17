@@ -179,21 +179,14 @@ var Canvas = (function() {
 
     if (document.getElementById('fp').classList.contains('open')) return;
 
-    // 若紋理補丁模式但尚未設定來源 → 阻擋繪製，提示使用者先選取來源
+    // 若紋理補丁模式但尚未設定來源 → 自動進入來源選取，讓使用者直接拖拉框選
     if (typeof FillEngine !== 'undefined' &&
         FillEngine.getMode() === 'patch' &&
         !FillEngine.getPatchSource() &&
         !FillEngine.isPatchSelecting()) {
-      App.setSt('⚠️ 請先點擊左側「點此選取來源」設定紋理補丁來源區域');
-      var hint = document.getElementById('patch-hint');
-      if (hint) {
-        hint.classList.add('needs-source', 'pulse');
-        setTimeout(function() { hint.classList.remove('pulse'); }, 1300);
-      }
-      var btnSel = document.getElementById('btnPatchSelect');
-      if (btnSel) { btnSel.style.borderColor = 'var(--red)'; btnSel.style.color = 'var(--red)'; }
-      e.preventDefault();
-      return;
+      FillEngine.setPatchSelecting(true);
+      App.setSt('📐 請拖拉框選紋理補丁來源區域');
+      // 繼續執行：讓這次拖拉直接作為來源選取
     }
 
     // 普通點擊：小移動 = 點擊編輯（mouseup 觸發），大移動 = 繪製新框
