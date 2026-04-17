@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/css/style.css">
-<script>var APP_VERSION = '1.3.0';</script>
+<script>var APP_VERSION = '1.4.0';</script>
 </head>
 <body>
 <div class="app">
@@ -110,16 +110,39 @@
 
         <div>
           <div class="sec-lbl">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
             </svg>
-            全域調整百分比
+            商家抽成
           </div>
           <div class="pct-row">
-            <input type="number" id="pctIn" value="35" placeholder="例：35 或 -10">
-            <div class="pct-badge" id="pctBadge">+35%</div>
+            <input type="number" id="pctIn" value="35" placeholder="例：35">
+            <div class="pct-badge" id="pctBadge">35%</div>
           </div>
-          <div style="font-size:11px;color:var(--gmd);margin-top:5px;">未指定群組的框選套用此數值</div>
+          <div style="font-size:11px;color:var(--gmd);margin-top:5px;">未指定群組的框選套用此抽成率</div>
+        </div>
+
+        <div>
+          <div class="sec-lbl" style="justify-content:space-between;align-items:center;">
+            <span style="display:flex;align-items:center;gap:5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="7" cy="6" r="3"/><circle cx="17" cy="6" r="3"/>
+                <circle cx="12" cy="14" r="8"/>
+                <circle cx="9" cy="13" r="1.8"/><circle cx="15" cy="13" r="1.8"/>
+                <ellipse cx="12" cy="16.5" rx="1.5" ry="1"/>
+              </svg>
+              Deal %
+            </span>
+            <label class="tog" title="開啟後納入計算">
+              <input type="checkbox" id="dealToggle">
+              <span class="tog-sl"></span>
+            </label>
+          </div>
+          <div class="pct-row deal-disabled" id="dealInputRow">
+            <input type="number" id="dealIn" value="80" placeholder="例：80" min="1" max="99">
+            <div class="pct-badge" id="dealBadge">—</div>
+          </div>
+          <div style="font-size:11px;color:var(--gmd);margin-top:5px;">原價 ÷ (1−抽成) ÷ Deal%，開啟後生效</div>
         </div>
 
         <!-- ── 填色方案 ── -->
@@ -431,7 +454,8 @@
           <div class="fp-info">
             <div class="fi-row"><span class="fi-lbl">框選尺寸</span><span class="fi-val" id="fpSz">—</span></div>
             <div class="fi-row"><span class="fi-lbl">套用群組</span><span class="fi-val" id="fpGrpName" style="color:var(--red)">全域</span></div>
-            <div class="fi-row"><span class="fi-lbl">調整幅度</span><span class="fi-val" id="fpPct">+35%</span></div>
+            <div class="fi-row"><span class="fi-lbl">商家抽成</span><span class="fi-val" id="fpPct">35%</span></div>
+            <div class="fi-row" id="fpDealRow" style="display:none;"><span class="fi-lbl">Deal %</span><span class="fi-val" id="fpDeal" style="color:var(--red)">80%</span></div>
             <div class="fi-row" style="margin-top:4px;padding-top:6px;border-top:1px solid var(--glt);">
               <span class="fi-lbl" style="font-weight:500;white-space:nowrap;">新價格</span>
               <div style="display:flex;align-items:center;gap:5px;">
@@ -550,7 +574,7 @@
       <div class="sdot"></div>
       <span id="stTxt">等待上傳圖片</span>
       <span style="margin-left:auto;font-size:11px;color:var(--gmd);" id="coordTxt"></span>
-      <span class="ver-badge" id="verBadge" title="目前版本">v1.3.0</span>
+      <span class="ver-badge" id="verBadge" title="目前版本">v1.4.0</span>
     </div>
 
   </div><!-- /main -->

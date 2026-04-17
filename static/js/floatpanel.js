@@ -162,13 +162,18 @@ var FloatPanel = (function() {
     setColorUI('');
   }
 
-  // ── 計算新價格（含四捨五入選項）──
+  // ── 計算新價格（商家抽成 + Deal % + 四捨五入）──
   function calcNewPrice(rawVal) {
     rawVal = parseFloat(stripCommas(String(rawVal)));
     var g = fpGroup ? Groups.getById(fpGroup) : null;
-    var pct = g ? g.pct : App.getGlobalPct();
-    var nv = Math.round(rawVal * (1 + pct / 100));
-    var r5 = document.getElementById('ckRound5').checked;
+    var commission = g ? g.pct : App.getGlobalPct();
+    if (commission >= 100) return rawVal;
+    var nv = Math.floor(rawVal / (1 - commission / 100));
+    if (App.dealIsActive()) {
+      var deal = App.getGlobalDeal();
+      if (deal > 0 && deal < 100) nv = Math.floor(nv / (deal / 100));
+    }
+    var r5  = document.getElementById('ckRound5').checked;
     var r10 = document.getElementById('ckRound10').checked;
     if (r5)  nv = Math.ceil(nv / 5) * 5;
     if (r10) nv = Math.round(nv / 10) * 10;
@@ -178,10 +183,7 @@ var FloatPanel = (function() {
   function updateNewPrice() {
     var v = parseFloat(stripCommas(document.getElementById('fpVal').value));
     if (v && v > 0) {
-      var g = fpGroup ? Groups.getById(fpGroup) : null;
-      var pct = g ? g.pct : App.getGlobalPct();
-      var rawNv = Math.round(v * (1 + pct / 100));
-      document.getElementById('fpCalc').textContent = rawNv;
+      document.getElementById('fpCalc').textContent = calcNewPrice(v);
       document.getElementById('fpNew').value = calcNewPrice(v);
     } else {
       document.getElementById('fpCalc').textContent = '—';
@@ -280,11 +282,9 @@ var FloatPanel = (function() {
     document.getElementById('fpVal').value = formatCommas(box.value);
     document.getElementById('fpVal').classList.remove('err');
     setFpValCheck(box.value > 0); // 已有值 → 綠勾
-    // 顯示原始計算值（參考）與最終值
-    var g2 = fpGroup ? Groups.getById(fpGroup) : null;
-    var pct2 = g2 ? g2.pct : App.getGlobalPct();
-    document.getElementById('fpCalc').textContent = Math.round(box.value * (1 + pct2 / 100));
+    // 顯示計算值（參考）與最終值
     var displayNew = box.newValue > 0 ? box.newValue : calcNewPrice(box.value);
+    document.getElementById('fpCalc').textContent = calcNewPrice(box.value);
     document.getElementById('fpNew').value = displayNew;
     document.getElementById('fp').classList.add('open');
     setTimeout(function() { document.getElementById('fpVal').focus(); document.getElementById('fpVal').select(); }, 260);
@@ -411,7 +411,15 @@ var FloatPanel = (function() {
     var pct = g ? g.pct : App.getGlobalPct();
     document.getElementById('fpGrpName').textContent = g ? g.name : '全域';
     document.getElementById('fpGrpName').style.color = g ? g.color : '#C0392B';
-    document.getElementById('fpPct').textContent = (pct >= 0 ? '+' : '') + pct + '%';
+    document.getElementById('fpPct').textContent = pct + '%';
+    // Deal % 列：開啟時顯示
+    var dealRow = document.getElementById('fpDealRow');
+    var dealEl  = document.getElementById('fpDeal');
+    if (dealRow && dealEl) {
+      var on = App.dealIsActive();
+      dealRow.style.display = on ? '' : 'none';
+      if (on) dealEl.textContent = App.getGlobalDeal() + '%';
+    }
     updateNewPrice();
   }
 
@@ -534,6 +542,7 @@ var FloatPanel = (function() {
     setOrient: setOrient,
     selectGroup: selectGroup,
     updateGroupInfo: updateGroupInfo,
+    updateNewPrice: updateNewPrice,
     onRoundChange: onRoundChange,
     onColorInput: onColorInput,
     resetColor: resetColor,

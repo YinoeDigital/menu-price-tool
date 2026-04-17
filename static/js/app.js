@@ -8,6 +8,8 @@ var App = (function() {
   var hist = [];
   var confirmCB = null;
   var enhancementApplied = false;
+  var globalDeal = 80;
+  var isDealEnabled = false;
 
   try { hist = JSON.parse(localStorage.getItem('mhist') || '[]'); } catch(e) {}
 
@@ -26,12 +28,54 @@ var App = (function() {
   function bindUI() {
     document.getElementById('fi').addEventListener('change', handleFileUpload);
     document.getElementById('ji').addEventListener('change', handleJSONLoad);
+
+    // 商家抽成
     document.getElementById('pctIn').addEventListener('input', function() {
       var v = parseFloat(this.value) || 0;
-      document.getElementById('pctBadge').textContent = (v >= 0 ? '+' : '') + v + '%';
+      document.getElementById('pctBadge').textContent = v + '%';
       renderPriceList();
       if (previewMode) redraw();
+      if (document.getElementById('fp').classList.contains('open')) {
+        FloatPanel.updateGroupInfo();
+      }
     });
+
+    // Deal % toggle
+    document.getElementById('dealToggle').addEventListener('change', function() {
+      isDealEnabled = this.checked;
+      var dealRow = document.getElementById('dealInputRow');
+      if (dealRow) dealRow.classList.toggle('deal-disabled', !isDealEnabled);
+      document.getElementById('dealBadge').textContent = isDealEnabled ? globalDeal + '%' : '—';
+      renderPriceList();
+      if (previewMode) redraw();
+      if (document.getElementById('fp').classList.contains('open')) {
+        FloatPanel.updateGroupInfo();
+      }
+    });
+
+    // Deal % 數值
+    document.getElementById('dealIn').addEventListener('input', function() {
+      globalDeal = parseFloat(this.value) || 80;
+      if (isDealEnabled) {
+        document.getElementById('dealBadge').textContent = globalDeal + '%';
+        renderPriceList();
+        if (previewMode) redraw();
+        if (document.getElementById('fp').classList.contains('open')) {
+          FloatPanel.updateGroupInfo();
+        }
+      }
+    });
+  }
+
+  // ── 計算單一 box 最終新價格 ──
+  function calcBoxPrice(box) {
+    var commission = getEffPct(box);
+    if (commission >= 100) return box.value; // 防止除以零
+    var nv = Math.floor(box.value / (1 - commission / 100));
+    if (isDealEnabled && globalDeal > 0 && globalDeal < 100) {
+      nv = Math.floor(nv / (globalDeal / 100));
+    }
+    return nv;
   }
 
   // ── FILE UPLOAD ──
@@ -105,8 +149,7 @@ var App = (function() {
     for (var i = 0; i < boxes.length; i++) {
       var box = boxes[i];
       var font = box.fontFamily || globalFont;
-      var effPct = getEffPct(box);
-      var nv = (box.newValue > 0) ? box.newValue : Math.round(box.value * (1 + effPct / 100));
+      var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
       var g = box.group ? Groups.getById(box.group) : null;
       var bc = g ? g.color : '#C0392B';
 
@@ -227,8 +270,7 @@ var App = (function() {
     var html = '';
     for (var i = 0; i < boxes.length; i++) {
       var b = boxes[i];
-      var effPct = getEffPct(b);
-      var nv = (b.newValue > 0) ? b.newValue : Math.round(b.value * (1 + effPct / 100));
+      var nv = (b.newValue > 0) ? b.newValue : calcBoxPrice(b);
       var g = b.group ? Groups.getById(b.group) : null;
       var col = g ? g.color : '#C0392B';
       html += '<div class="pi" style="cursor:pointer" onclick="FloatPanel.openEdit(App.getBoxById(\'' + b.id + '\'))">';
@@ -312,8 +354,7 @@ var App = (function() {
     for (var i = 0; i < boxes.length; i++) {
       var box = boxes[i];
       var font = box.fontFamily || globalFont2;
-      var effPct = getEffPct(box);
-      var nv = (box.newValue > 0) ? box.newValue : Math.round(box.value * (1 + effPct / 100));
+      var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
 
       // 使用 FillEngine 填色
       var bgColor = FillEngine.apply(oc, off, box, {
@@ -468,7 +509,7 @@ var App = (function() {
   }
 
   function deleteGroup(id) {
-    showCD('刪除群組', '此群組的框選將改為套用全域百分比，確定刪除？', '取消', '確認刪除', function() {
+    showCD('刪除群組', '此群組的框選將改為套用全域商家抽成，確定刪除？', '取消', '確認刪除', function() {
       Groups.remove(id);
       for (var i = 0; i < boxes.length; i++) {
         if (boxes[i].group === id) boxes[i].group = null;
@@ -865,6 +906,8 @@ var App = (function() {
 
   // ── UTILS ──
   function getGlobalPct() { return parseFloat(document.getElementById('pctIn').value) || 0; }
+  function getGlobalDeal() { return globalDeal; }
+  function dealIsActive() { return isDealEnabled; }
 
   function getEffPct(box) {
     if (box.group) {
@@ -926,6 +969,8 @@ var App = (function() {
     isPreview: isPreview,
     getEffPct: getEffPct,
     getGlobalPct: getGlobalPct,
+    getGlobalDeal: getGlobalDeal,
+    dealIsActive: dealIsActive,
     toggleTips: toggleTips,
     setTipsOS: setTipsOS,
     applyFontToAll: applyFontToAll,
