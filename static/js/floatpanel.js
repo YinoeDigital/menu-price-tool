@@ -243,13 +243,19 @@ var FloatPanel = (function() {
     App.setSt('編輯已框選的價格');
   }
 
+  // 點擊 fp 外部區域 → 抖動底部按鈕群提示，不彈出確認視窗
+  function nudgeButtons() {
+    var foot = document.getElementById('fpFoot');
+    if (!foot) return;
+    foot.classList.remove('shake');
+    // force reflow 讓動畫可重複觸發
+    void foot.offsetWidth;
+    foot.classList.add('shake');
+    setTimeout(function() { foot.classList.remove('shake'); }, 500);
+  }
+
   function reqClose() {
-    var v = document.getElementById('fpVal').value;
-    if (v && parseFloat(v) > 0) {
-      App.showCD('尚未儲存的資料', '已輸入價格但尚未確認。確定捨棄？', '返回編輯', '捨棄離開', function() { close(); });
-    } else {
-      close();
-    }
+    close();
   }
 
   function close() {
@@ -474,6 +480,7 @@ var FloatPanel = (function() {
     open: open,
     openEdit: openEdit,
     reqClose: reqClose,
+    nudgeButtons: nudgeButtons,
     close: close,
     confirm: confirm,
     setOrient: setOrient,

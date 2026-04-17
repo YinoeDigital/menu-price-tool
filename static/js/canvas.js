@@ -64,7 +64,7 @@ var Canvas = (function() {
       if (document.getElementById('fp').contains(e.target)) return;
       e.stopPropagation();
       e.preventDefault();
-      if (window.FloatPanel) FloatPanel.reqClose();
+      if (window.FloatPanel) FloatPanel.nudgeButtons();
     }, true);
   }
 
@@ -418,6 +418,9 @@ var Canvas = (function() {
   }
 
   function onWheel(e) {
+    // 若滾輪發生在 fp 面板內，直接略過（不縮放畫布）
+    var fpEl = document.getElementById('fp');
+    if (fpEl && fpEl.contains(e.target)) return;
     e.preventDefault();
     var r = cw.getBoundingClientRect();
     var mx = e.clientX - r.left;
