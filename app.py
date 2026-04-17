@@ -65,7 +65,7 @@ try:
     if __name__ == '__main__':
         port = int(os.environ.get('PORT', 5001))
         print(f' * Running on http://localhost:{port}')
-        app.run(debug=True, host='0.0.0.0', port=port)
+        app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False, threaded=True)
 
 except ImportError:
     print("Flask not installed. Use: python3 -m http.server 5001")

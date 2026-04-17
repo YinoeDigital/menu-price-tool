@@ -25,6 +25,12 @@ var Canvas = (function() {
   // ── 鍵盤狀態追蹤 ──
   var spaceHeld = false;
 
+  // ── 多選模式 ──
+  var capsMode = false;
+  var isMultiSel = false;
+  var selStartC = null, selEndC = null;
+  var selectedIds = [];
+
   function init(canvasId, containerId, onDraw) {
     mc = document.getElementById(canvasId);
     ctx = mc.getContext('2d');
@@ -57,6 +63,23 @@ var Canvas = (function() {
         spaceHeld = false;
         // 若拖曳中途放開空白鍵，重設游標
         if (!isDragging && mc) mc.style.cursor = 'crosshair';
+      }
+    });
+
+    // CapsLock / 中英 → 多選模式切換（toggle）
+    window.addEventListener('keydown', function(e) {
+      if (e.code === 'CapsLock') {
+        capsMode = !capsMode;
+        if (mc) mc.style.cursor = capsMode ? 'cell' : 'crosshair';
+        if (!capsMode) clearMultiSel();
+        e.preventDefault();
+      }
+      if (e.code === 'Escape') {
+        if (capsMode || selectedIds.length) {
+          capsMode = false;
+          if (mc) mc.style.cursor = 'crosshair';
+          clearMultiSel();
+        }
       }
     });
     cw.addEventListener('mousedown', function(e) {
@@ -180,9 +203,91 @@ var Canvas = (function() {
     ctx.restore();
   }
 
+  // ── 多選模式輔助 ──
+  function canvasToScreen(cx, cy) {
+    var ccRect = cc.getBoundingClientRect();
+    var cwRect = cw.getBoundingClientRect();
+    return {
+      x: (ccRect.left - cwRect.left) + cx * zoomLevel,
+      y: (ccRect.top  - cwRect.top)  + cy * zoomLevel
+    };
+  }
+
+  function drawMultiSelRect() {
+    if (!selStartC || !selEndC) return;
+    var x = Math.min(selStartC.x, selEndC.x);
+    var y = Math.min(selStartC.y, selEndC.y);
+    var w = Math.abs(selEndC.x - selStartC.x);
+    var h = Math.abs(selEndC.y - selStartC.y);
+    ctx.save();
+    ctx.strokeStyle = '#27ae60';
+    ctx.lineWidth = 2 / zoomLevel;
+    ctx.setLineDash([6 / zoomLevel, 3 / zoomLevel]);
+    ctx.globalAlpha = 0.9;
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = 'rgba(39,174,96,0.08)';
+    ctx.fillRect(x, y, w, h);
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function showAlignBar(selX1, selY1, selX2, selY2) {
+    var bar = document.getElementById('alignBar');
+    if (!bar) return;
+    var tr = canvasToScreen(selX2, selY1); // top-right corner of selection
+    bar.style.left = (tr.x + 6) + 'px';
+    bar.style.top  = tr.y + 'px';
+    bar.style.display = 'flex';
+  }
+
+  function hideAlignBar() {
+    var bar = document.getElementById('alignBar');
+    if (bar) bar.style.display = 'none';
+  }
+
+  function clearMultiSel() {
+    isMultiSel = false;
+    selStartC  = null;
+    selEndC    = null;
+    selectedIds = [];
+    hideAlignBar();
+    if (img) App.redraw();
+  }
+
+  function drawSelOverlays() {
+    if (!selectedIds.length || !img) return;
+    var boxes = App.getBoxes();
+    ctx.save();
+    ctx.strokeStyle = '#27ae60';
+    ctx.lineWidth = 2.5 / zoomLevel;
+    ctx.setLineDash([]);
+    for (var i = 0; i < boxes.length; i++) {
+      if (selectedIds.indexOf(boxes[i].id) >= 0) {
+        var b = boxes[i];
+        ctx.strokeRect(b.x - 2 / zoomLevel, b.y - 2 / zoomLevel,
+                       b.w + 4 / zoomLevel, b.h + 4 / zoomLevel);
+      }
+    }
+    ctx.restore();
+  }
+
   // ── 滑鼠事件 ──
   function onMouseDown(e) {
     if (!img) return;
+
+    // CapsLock 多選模式 → 開始框選
+    if (capsMode) {
+      var p0 = toCanvas(e.clientX, e.clientY);
+      isMultiSel = true;
+      selStartC = { x: p0.x, y: p0.y };
+      selEndC   = { x: p0.x, y: p0.y };
+      selectedIds = [];
+      hideAlignBar();
+      e.preventDefault();
+      return;
+    }
+
     // Space / 中鍵 → 平移（不受 float panel 影響）
     if (spaceHeld || e.button === 1) {
       isPanning = true;
@@ -247,6 +352,15 @@ var Canvas = (function() {
     if (!img) return;
     var p = toCanvas(e.clientX, e.clientY);
     var shiftHeld = e.shiftKey;
+
+    // CapsLock 多選模式 → 更新框選範圍
+    if (capsMode && isMultiSel) {
+      selEndC = { x: p.x, y: p.y };
+      App.fastRedraw();
+      drawSelOverlays();
+      drawMultiSelRect();
+      return;
+    }
 
     // Space 游標（平移提示）
     if (spaceHeld && !isPanning && !isDragging && !drawing) {
@@ -354,6 +468,15 @@ var Canvas = (function() {
       applyTransform();
       return;
     }
+    // CapsLock 多選模式（超出 canvas 也能追蹤）
+    if (capsMode && isMultiSel && img) {
+      var pc = toCanvas(e.clientX, e.clientY);
+      selEndC = { x: pc.x, y: pc.y };
+      App.fastRedraw();
+      drawSelOverlays();
+      drawMultiSelRect();
+      return;
+    }
     if (!isDragging || !dragBox || !img) return;
     var p = toCanvas(e.clientX, e.clientY);
     var newX = p.x - dragOffX;
@@ -370,6 +493,34 @@ var Canvas = (function() {
 
   function onMouseUp(e) {
     if (isPanning) { isPanning = false; mc.style.cursor = spaceHeld ? 'grab' : 'crosshair'; return; }
+
+    // CapsLock 多選結束 → 計算選中框
+    if (capsMode && isMultiSel) {
+      isMultiSel = false;
+      if (selStartC && selEndC) {
+        var sx = Math.min(selStartC.x, selEndC.x);
+        var sy = Math.min(selStartC.y, selEndC.y);
+        var sw = Math.abs(selEndC.x - selStartC.x);
+        var sh = Math.abs(selEndC.y - selStartC.y);
+        if (sw >= 4 && sh >= 4) {
+          var allBoxes = App.getBoxes();
+          selectedIds = [];
+          for (var si = 0; si < allBoxes.length; si++) {
+            var sb = allBoxes[si];
+            if (sb.x < sx + sw && sb.x + sb.w > sx &&
+                sb.y < sy + sh && sb.y + sb.h > sy) {
+              selectedIds.push(sb.id);
+            }
+          }
+          App.fastRedraw();
+          drawSelOverlays();
+          if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
+        } else {
+          App.redraw();
+        }
+      }
+      return;
+    }
 
     // 拖曳結束
     if (isDragging) {
@@ -424,6 +575,35 @@ var Canvas = (function() {
 
   function onWindowMouseUp(e) {
     if (isPanning && !isDragging) { isPanning = false; mc.style.cursor = spaceHeld ? 'grab' : 'crosshair'; return; }
+
+    // CapsLock 多選（滑鼠在 canvas 外釋放）
+    if (capsMode && isMultiSel) {
+      isMultiSel = false;
+      if (selStartC && selEndC) {
+        var sx = Math.min(selStartC.x, selEndC.x);
+        var sy = Math.min(selStartC.y, selEndC.y);
+        var sw = Math.abs(selEndC.x - selStartC.x);
+        var sh = Math.abs(selEndC.y - selStartC.y);
+        if (sw >= 4 && sh >= 4) {
+          var allBoxes = App.getBoxes();
+          selectedIds = [];
+          for (var si = 0; si < allBoxes.length; si++) {
+            var sb = allBoxes[si];
+            if (sb.x < sx + sw && sb.x + sb.w > sx &&
+                sb.y < sy + sh && sb.y + sb.h > sy) {
+              selectedIds.push(sb.id);
+            }
+          }
+          App.fastRedraw();
+          drawSelOverlays();
+          if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
+        } else {
+          App.redraw();
+        }
+      }
+      return;
+    }
+
     if (isDragging) {
       isDragging = false;
       mc.style.cursor = 'grab';
@@ -542,6 +722,10 @@ var Canvas = (function() {
     getImage: getImage,
     getZoom: getZoom,
     setLastSize: setLastSize,
-    getLastSize: getLastSize
+    getLastSize: getLastSize,
+    drawSelOverlays: drawSelOverlays,
+    getSelectedIds: function() { return selectedIds.slice(); },
+    clearMultiSel: clearMultiSel,
+    isCapsMode: function() { return capsMode; }
   };
 })();

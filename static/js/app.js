@@ -182,6 +182,7 @@ var App = (function() {
       ctx.strokeRect(box.x, box.y, box.w, box.h);
       ctx.setLineDash([]);
     }
+    if (typeof Canvas.drawSelOverlays === 'function') Canvas.drawSelOverlays();
   }
 
   function redraw() {
@@ -283,6 +284,7 @@ var App = (function() {
         ctx.fillText('#' + (i+1) + '  ' + box.value + '→' + nv, box.x + 2, box.y - 3 / zoom);
       }
     }
+    if (typeof Canvas.drawSelOverlays === 'function') Canvas.drawSelOverlays();
   }
 
   // ── PRICE LIST ──
@@ -1123,6 +1125,19 @@ var App = (function() {
   function getBoxes() { return boxes; }
   function isPreview() { return previewMode; }
 
+  // ── 多選對齊 ──
+  function applyMultiAlign(align) {
+    var ids = (typeof Canvas.getSelectedIds === 'function') ? Canvas.getSelectedIds() : [];
+    if (!ids.length) return;
+    for (var i = 0; i < boxes.length; i++) {
+      if (ids.indexOf(boxes[i].id) >= 0) {
+        boxes[i].textAlign = align;
+      }
+    }
+    redraw();
+    setSt('✅ 已將「' + (align === 'left' ? '靠左' : align === 'right' ? '靠右' : '置中') + '」對齊套用至 ' + ids.length + ' 個價格框');
+  }
+
   return {
     init: init,
     redraw: redraw,
@@ -1160,6 +1175,7 @@ var App = (function() {
     applyFontToAll: applyFontToAll,
     isOcrReady: isOcrReady,
     detectPrice: detectPrice,
-    enhanceQuality: enhanceQuality
+    enhanceQuality: enhanceQuality,
+    applyMultiAlign: applyMultiAlign
   };
 })();

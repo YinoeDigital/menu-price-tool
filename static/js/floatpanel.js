@@ -92,15 +92,23 @@ var FloatPanel = (function() {
 
     valEl.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
-        // Enter = 確認原始數值並重算（不關閉面板）
-        var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
-        if (raw) {
-          this.value = formatCommas(parseInt(raw, 10));
-          _pollLast = this.value;
-          updateNewPrice();
-          setFpValCheck(true);
+        var checkEl = document.getElementById('fpValCheck');
+        var isConfirmed = checkEl && checkEl.classList.contains('active');
+
+        if (isConfirmed) {
+          // 打勾已是綠色 → 第二次 Enter = 觸發「加入」按鈕
+          confirm();
         } else {
-          setFpValCheck(false);
+          // 打勾是灰色 → 第一次 Enter = 確認數值並轉綠
+          var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
+          if (raw) {
+            this.value = formatCommas(parseInt(raw, 10));
+            _pollLast = this.value;
+            updateNewPrice();
+            setFpValCheck(true);
+          } else {
+            setFpValCheck(false);
+          }
         }
         e.preventDefault();
         return;
