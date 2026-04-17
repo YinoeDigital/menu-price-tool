@@ -445,7 +445,7 @@ select:focus,input:focus{border-color:var(--red);}
 }
 .fp-val-check.active{cursor:default;color:#27AE60;}
 
-.fp-affix-sel{flex:1;min-width:0;font-size:12px;padding:5px 6px;border:1px solid var(--glt);border-radius:var(--r);background:var(--bg);color:var(--gdk);cursor:pointer;outline:none;height:34px;}
+.fp-affix-sel{width:auto;min-width:72px;font-size:12px;padding:5px 6px;border:1px solid var(--glt);border-radius:var(--r);background:var(--bg);color:var(--gdk);cursor:pointer;outline:none;height:34px;}
 .fp-affix-sel:focus{border-color:var(--red);}
 .fp-info{background:var(--cream);border-radius:var(--r);padding:7px 10px;border:1px solid var(--glt);}
 .fi-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:2px 0;}
