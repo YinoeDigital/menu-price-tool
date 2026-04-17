@@ -1,4 +1,4 @@
 {
-  "version": "1.4.2",
-  "note": "修正：renderHist null crash；Flask 加 no-cache header 確保每次載入最新版本"
+  "version": "1.4.3",
+  "note": "修正：checkVersion 改用相對路徑 ./static/version.json，修正 GitHub Pages 子目錄部署下版本檢查 404 問題"
 }
