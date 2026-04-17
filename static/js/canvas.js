@@ -71,7 +71,12 @@ var Canvas = (function() {
       if (e.code === 'CapsLock') {
         capsMode = !capsMode;
         if (mc) mc.style.cursor = capsMode ? 'cell' : 'crosshair';
-        if (!capsMode) clearMultiSel();
+        if (!capsMode) {
+          clearMultiSel();
+          if (typeof App !== 'undefined') App.setSt('');
+        } else {
+          if (typeof App !== 'undefined') App.setSt('🟢 多選模式（再按 CapsLock / 中英 退出，或按 Esc）');
+        }
         e.preventDefault();
       }
       if (e.code === 'Escape') {
@@ -79,6 +84,7 @@ var Canvas = (function() {
           capsMode = false;
           if (mc) mc.style.cursor = 'crosshair';
           clearMultiSel();
+          if (typeof App !== 'undefined') App.setSt('');
         }
       }
     });
@@ -276,8 +282,8 @@ var Canvas = (function() {
   function onMouseDown(e) {
     if (!img) return;
 
-    // CapsLock 多選模式 → 開始框選
-    if (capsMode) {
+    // CapsLock 多選模式 → 開始框選（Shift 鍵例外：優先執行「複製上次框大小」）
+    if (capsMode && !e.shiftKey) {
       var p0 = toCanvas(e.clientX, e.clientY);
       isMultiSel = true;
       selStartC = { x: p0.x, y: p0.y };
@@ -353,8 +359,8 @@ var Canvas = (function() {
     var p = toCanvas(e.clientX, e.clientY);
     var shiftHeld = e.shiftKey;
 
-    // CapsLock 多選模式 → 更新框選範圍
-    if (capsMode && isMultiSel) {
+    // CapsLock 多選模式 → 更新框選範圍（Shift 鍵時讓出給複製框大小）
+    if (capsMode && isMultiSel && !e.shiftKey) {
       selEndC = { x: p.x, y: p.y };
       App.fastRedraw();
       drawSelOverlays();
@@ -468,8 +474,8 @@ var Canvas = (function() {
       applyTransform();
       return;
     }
-    // CapsLock 多選模式（超出 canvas 也能追蹤）
-    if (capsMode && isMultiSel && img) {
+    // CapsLock 多選模式（超出 canvas 也能追蹤，Shift 時讓出）
+    if (capsMode && isMultiSel && img && !(e.shiftKey)) {
       var pc = toCanvas(e.clientX, e.clientY);
       selEndC = { x: pc.x, y: pc.y };
       App.fastRedraw();
