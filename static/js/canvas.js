@@ -114,6 +114,44 @@ var Canvas = (function() {
         }
       }
     }
+    // ── 尺標參考線吸附（H guide → Y 軸，V guide → X 軸）──
+    var SNAP_GUIDE = 8;
+    if (typeof Rulers !== 'undefined') {
+      var rg = Rulers.getGuides();
+
+      // V guides（垂直線）→ 吸附 X 軸
+      for (var gi = 0; gi < rg.v.length; gi++) {
+        var gv = rg.v[gi];
+        var gxCands = [
+          [x,       gv, gv - 0,   gv],         // 左←guide
+          [x + w,   gv, gv,       gv - w],      // 右←guide
+          [x + w/2, gv, gv,       gv - w/2],    // 中←guide
+        ];
+        for (var gxi = 0; gxi < gxCands.length; gxi++) {
+          var dgx = Math.abs(gxCands[gxi][0] - gxCands[gxi][1]);
+          if (dgx < SNAP_GUIDE && dgx < bestDX) {
+            bestDX = dgx; snapX = gxCands[gxi][3]; vLines = [gxCands[gxi][2]];
+          }
+        }
+      }
+
+      // H guides（水平線）→ 吸附 Y 軸
+      for (var gj = 0; gj < rg.h.length; gj++) {
+        var gh = rg.h[gj];
+        var gyCands = [
+          [y,       gh, gh,       gh],          // 上←guide
+          [y + h,   gh, gh,       gh - h],      // 下←guide
+          [y + h/2, gh, gh,       gh - h/2],    // 中←guide
+        ];
+        for (var gyi = 0; gyi < gyCands.length; gyi++) {
+          var dgy = Math.abs(gyCands[gyi][0] - gyCands[gyi][1]);
+          if (dgy < SNAP_GUIDE && dgy < bestDY) {
+            bestDY = dgy; snapY = gyCands[gyi][3]; hLines = [gyCands[gyi][2]];
+          }
+        }
+      }
+    }
+
     return { snapX: snapX, snapY: snapY, vLines: vLines, hLines: hLines };
   }
 

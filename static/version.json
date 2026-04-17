@@ -1,4 +1,4 @@
 {
-  "version": "1.5.7",
-  "note": "刪除 badge 移入畫布灰色區域內側，pointer-events 動態切換，尺標保留細藍線指示"
+  "version": "1.5.8",
+  "note": "拖曳矩形自動吸附尺標參考線（H guide → Y 軸，V guide → X 軸，8px 閾值）"
 }

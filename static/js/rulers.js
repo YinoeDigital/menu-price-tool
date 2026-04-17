@@ -363,5 +363,7 @@ var Rulers = (function() {
 
   function clearAll() { guides.h = []; guides.v = []; drawRulers(); drawGuides(); }
 
-  return { init: init, redraw: redraw, toggle: toggle, clearAll: clearAll, drawGuides: drawGuides, tryDeleteGuide: tryDeleteGuide };
+  function getGuides() { return { h: guides.h.slice(), v: guides.v.slice() }; }
+
+  return { init: init, redraw: redraw, toggle: toggle, clearAll: clearAll, drawGuides: drawGuides, tryDeleteGuide: tryDeleteGuide, getGuides: getGuides };
 })();
