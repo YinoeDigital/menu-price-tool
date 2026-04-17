@@ -2,8 +2,8 @@
 
 var Rulers = (function() {
   var RULER_SZ = 20;
-  var MARKER_SZ = 7;   // 尺標上 guide 標記的三角形大小
-  var THRESH_DEL = 8;  // 尺標上 hover 刪除的像素容忍度
+  var MARKER_SZ = 7;    // 保留（未使用，備用）
+  var THRESH_DEL = 12;  // 尺標上 hover 刪除的像素容忍度（配合較大的圓角矩形 badge）
   var guides = { h: [], v: [] }; // image-pixel coordinates
   var visible = true;
   var rulerH, rulerV, guideCanvas, guideCtx;
@@ -305,50 +305,85 @@ var Rulers = (function() {
     }
   }
 
-  // 在橫尺標 X 位置畫標記三角形，hover 時疊上 ×
-  function drawRulerMarkerH(ctx, x, isHover) {
-    ctx.save();
-    ctx.fillStyle = isHover ? '#e74c3c' : 'rgba(0,140,255,0.85)';
-    // 向下的三角形
+  // 圓角矩形 helper
+  function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
-    ctx.moveTo(x, RULER_SZ - 1);
-    ctx.lineTo(x - MARKER_SZ / 2, RULER_SZ - 1 - MARKER_SZ);
-    ctx.lineTo(x + MARKER_SZ / 2, RULER_SZ - 1 - MARKER_SZ);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
     ctx.closePath();
+  }
+
+  // 橫尺標（頂部）：V guide 的刪除標記 — 圓角矩形浮於尺標與線條交接處
+  function drawRulerMarkerH(ctx, x, isHover) {
+    var BW = 18, BH = 16, BR = 4;
+    var bx = x - BW / 2;
+    var by = RULER_SZ - BH; // 貼齊尺標底部
+    var color = isHover ? '#e74c3c' : '#3a8edf';
+
+    ctx.save();
+    // 陰影增加懸浮感
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetY = 1;
+
+    // 白底圓角矩形
+    roundRect(ctx, bx, by, BW, BH, BR);
+    ctx.fillStyle = '#ffffff';
     ctx.fill();
-    if (isHover) {
-      // 畫 × icon
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = 'round';
-      var cx = x, cy = RULER_SZ - 1 - MARKER_SZ * 0.6;
-      var r = MARKER_SZ * 0.28;
-      ctx.beginPath(); ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r); ctx.stroke();
-    }
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, bx, by, BW, BH, BR);
+    ctx.stroke();
+
+    // × icon
+    var cx = x, cy = by + BH / 2;
+    var r = 3.5;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r); ctx.stroke();
     ctx.restore();
   }
 
-  // 在直尺標 Y 位置畫標記三角形，hover 時疊上 ×
+  // 直尺標（左側）：H guide 的刪除標記 — 圓角矩形浮於尺標與線條交接處
   function drawRulerMarkerV(ctx, y, isHover) {
+    var BW = 16, BH = 18, BR = 4;
+    var bx = RULER_SZ - BW; // 貼齊尺標右邊
+    var by = y - BH / 2;
+    var color = isHover ? '#e74c3c' : '#3a8edf';
+
     ctx.save();
-    ctx.fillStyle = isHover ? '#e74c3c' : 'rgba(0,140,255,0.85)';
-    // 向右的三角形
-    ctx.beginPath();
-    ctx.moveTo(RULER_SZ - 1, y);
-    ctx.lineTo(RULER_SZ - 1 - MARKER_SZ, y - MARKER_SZ / 2);
-    ctx.lineTo(RULER_SZ - 1 - MARKER_SZ, y + MARKER_SZ / 2);
-    ctx.closePath();
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 1;
+
+    // 白底圓角矩形
+    roundRect(ctx, bx, by, BW, BH, BR);
+    ctx.fillStyle = '#ffffff';
     ctx.fill();
-    if (isHover) {
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = 'round';
-      var cx = RULER_SZ - 1 - MARKER_SZ * 0.6, cy = y;
-      var r = MARKER_SZ * 0.28;
-      ctx.beginPath(); ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r); ctx.stroke();
-    }
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, bx, by, BW, BH, BR);
+    ctx.stroke();
+
+    // × icon
+    var cx = bx + BW / 2, cy = y;
+    var r = 3.5;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r); ctx.stroke();
     ctx.restore();
   }
 
