@@ -184,15 +184,13 @@ var Rulers = (function() {
     return 1000;
   }
 
+  // 只切換「拖出的參考線」顯示/隱藏，尺標刻度永遠顯示
   function toggle() {
     visible = !visible;
     var btn = document.getElementById('btnGuides');
-    if (btn) btn.classList.toggle('active', visible);
-    var ra = document.getElementById('rulerArea');
-    if (ra) {
-      ra.querySelector('#rulerH').style.display = visible ? '' : 'none';
-      ra.querySelector('#rulerV').style.display = visible ? '' : 'none';
-      ra.querySelector('.ruler-corner').style.display = visible ? '' : 'none';
+    if (btn) {
+      btn.classList.toggle('active', visible);
+      btn.title = visible ? '隱藏參考線' : '顯示參考線';
     }
     if (guideCanvas) guideCanvas.style.display = visible ? '' : 'none';
     drawGuides();

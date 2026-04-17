@@ -1,4 +1,4 @@
 {
-  "version": "1.5.1",
-  "note": "修正 fillAffixOverflow 誤覆蓋 FillEngine 填色：改為只填 box 外側溢出區域，並從 box 邊緣取樣色值"
+  "version": "1.5.2",
+  "note": "尺標眼睛按鈕移至左上角，只切換參考線顯示；移除工具列尺標按鈕"
 }

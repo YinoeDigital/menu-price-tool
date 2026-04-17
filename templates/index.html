@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
-<script>var APP_VERSION = '1.5.1';</script>
+<script>var APP_VERSION = '1.5.2';</script>
 </head>
 <body>
 <div class="app">
@@ -321,14 +321,6 @@
         </button>
       </div>
       <div class="tb-right">
-        <button class="tb-btn" id="btnGuides" onclick="Rulers.toggle()" title="顯示/隱藏尺標與參考線" style="padding:6px 10px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-            <path d="M2 12h20M12 2v20"/>
-            <line x1="6" y1="2" x2="6" y2="5"/><line x1="18" y1="2" x2="18" y2="5"/>
-            <line x1="2" y1="6" x2="5" y2="6"/><line x1="2" y1="18" x2="5" y2="18"/>
-          </svg>
-          尺標
-        </button>
         <!-- 快捷 Tips 按鈕 + 彈出面板 -->
         <div style="position:relative;">
           <button class="btn btn-outline" id="btnTips" style="width:auto;padding:7px 14px;font-size:13px;" onclick="App.toggleTips()">
@@ -387,7 +379,13 @@
 
     <!-- Canvas area with rulers -->
     <div class="ruler-area" id="rulerArea">
-      <div class="ruler-corner"></div>
+      <div class="ruler-corner">
+        <button class="ruler-eye-btn active" id="btnGuides" onclick="Rulers.toggle()" title="顯示參考線">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
       <canvas class="ruler-h" id="rulerH"></canvas>
       <canvas class="ruler-v" id="rulerV"></canvas>
       <div class="cw" id="cw">
