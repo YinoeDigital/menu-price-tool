@@ -27,7 +27,8 @@ var App = (function() {
 
   function bindUI() {
     document.getElementById('fi').addEventListener('change', handleFileUpload);
-    document.getElementById('ji').addEventListener('change', handleJSONLoad);
+    var jiEl = document.getElementById('ji');
+    if (jiEl) jiEl.addEventListener('change', handleJSONLoad);
 
     // 商家抽成
     document.getElementById('pctIn').addEventListener('input', function() {

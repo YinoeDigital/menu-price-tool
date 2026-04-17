@@ -1,4 +1,4 @@
 {
-  "version": "1.4.0",
-  "note": "新增：商家抽成（取代全域調整百分比，改為除法反推）+ Deal % 可選項目（熊貓 icon + toggle，關閉時不納入計算）"
+  "version": "1.4.1",
+  "note": "修正：bindUI() 因 id=ji 元素不存在而崩潰，導致 FloatPanel.init() 未執行（打勾/Deal% toggle 均失效）"
 }
