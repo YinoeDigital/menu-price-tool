@@ -42,15 +42,25 @@ var Rulers = (function() {
 
   function onDragEnd(e) {
     if (!dragging) return;
+    var placed = false;
     if (dragging.pos !== null) {
       var img = Canvas.getImage();
       if (img) {
         if (dragging.type === 'h' && dragging.pos >= 0 && dragging.pos <= img.height) {
           guides.h.push(dragging.pos);
+          placed = true;
         } else if (dragging.type === 'v' && dragging.pos >= 0 && dragging.pos <= img.width) {
           guides.v.push(dragging.pos);
+          placed = true;
         }
       }
+    }
+    // 若眼睛為關閉狀態且成功拉出新參考線，自動打開眼睛
+    if (placed && !visible) {
+      visible = true;
+      if (guideCanvas) guideCanvas.style.display = '';
+      var btn = document.getElementById('btnGuides');
+      if (btn) { btn.classList.add('active'); btn.title = '隱藏參考線'; }
     }
     dragging = null;
     drawGuides();

@@ -1,5 +1,5 @@
 from flask import Response
-import os, mimetypes
+import os, json, re
 
 MIME = {
     '.css': 'text/css',
@@ -20,6 +20,15 @@ NO_CACHE_HEADERS = {
     'Expires': '0',
 }
 
+def get_version():
+    """讀取 version.json 取得最新版本號"""
+    try:
+        vpath = os.path.join(os.path.dirname(__file__), 'static', 'version.json')
+        with open(vpath, 'r', encoding='utf-8') as f:
+            return json.load(f).get('version', '0.0.0')
+    except Exception:
+        return '0.0.0'
+
 def serve_file(filepath, mime):
     is_text = mime.startswith('text') or mime in ('application/javascript', 'application/json')
     if is_text:
@@ -35,7 +44,16 @@ try:
 
     @app.route('/')
     def index():
-        return serve_file(os.path.join(os.path.dirname(__file__), 'index.html'), 'text/html')
+        filepath = os.path.join(os.path.dirname(__file__), 'index.html')
+        with open(filepath, 'r', encoding='utf-8') as f:
+            html = f.read()
+        # 永遠把 HTML 裡的版本號替換成 version.json 的最新版本，避免瀏覽器緩存舊值
+        version = get_version()
+        html = re.sub(r"var APP_VERSION = '[^']*';", f"var APP_VERSION = '{version}';", html)
+        # 同時替換 verBadge 的初始顯示文字，讓頁面一開啟就顯示正確版號（不需等 fetch）
+        html = re.sub(r'(<span[^>]*id="verBadge"[^>]*>)v[^<]*(</span>)',
+                      rf'\g<1>v{version}\g<2>', html)
+        return Response(html, mimetype='text/html', headers=NO_CACHE_HEADERS)
 
     @app.route('/static/<path:filename>')
     def static_files(filename):

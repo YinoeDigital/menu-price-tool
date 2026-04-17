@@ -14,6 +14,7 @@ var FloatPanel = (function() {
   var pendingBox = null;
   var fpOrient = 'vertical';
   var fpGroup = null;
+  var currentBox = null;
   var _pollTimer = null;
   var _pollLast = '';
   var editingId = null;
@@ -165,6 +166,7 @@ var FloatPanel = (function() {
   // ── 計算新價格（商家抽成 + Deal % + 四捨五入）──
   function calcNewPrice(rawVal) {
     rawVal = parseFloat(stripCommas(String(rawVal)));
+    if (!App.commissionIsActive()) return rawVal; // 抽成關閉 → 直接回傳原價
     var g = fpGroup ? Groups.getById(fpGroup) : null;
     var commission = g ? g.pct : App.getGlobalPct();
     if (commission >= 100) return rawVal;
@@ -178,6 +180,23 @@ var FloatPanel = (function() {
     if (r5)  nv = Math.ceil(nv / 5) * 5;
     if (r10) nv = Math.round(nv / 10) * 10;
     return nv;
+  }
+
+  // ── 商家抽成開關切換時更新 FloatPanel UI ──
+  function updateCommissionUI() {
+    var active = App.commissionIsActive();
+    var calcGroup = document.getElementById('fpCalcGroup');
+    var pctRow = document.getElementById('fpPct');
+    var dealRow = document.getElementById('fpDealRow');
+    if (calcGroup) calcGroup.style.display = active ? '' : 'none';
+    if (pctRow) {
+      pctRow.textContent = active ? (App.getEffPct(currentBox || {}) || App.getGlobalPct()) + '%' : '關閉';
+      pctRow.style.color = active ? '' : 'var(--gmd)';
+    }
+    // Deal % 列跟著抽成一起隱藏
+    if (dealRow) dealRow.style.display = (active && App.dealIsActive()) ? '' : 'none';
+    // 重新計算新價格顯示
+    updateNewPrice();
   }
 
   function updateNewPrice() {
@@ -256,6 +275,7 @@ var FloatPanel = (function() {
   }
 
   function openEdit(box) {
+    currentBox = box;
     editingId = box.id;
     pendingBox = { x: box.x, y: box.y, w: box.w, h: box.h };
     fpGroup = box.group || null;
@@ -278,6 +298,7 @@ var FloatPanel = (function() {
     document.getElementById('ckRound5').checked  = stickyRound5;
     document.getElementById('selAffix').value     = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
     updateGroupInfo();
+    updateCommissionUI();
     Groups.renderChips(fpGroup);
     document.getElementById('fpVal').value = formatCommas(box.value);
     document.getElementById('fpVal').classList.remove('err');
@@ -481,6 +502,9 @@ var FloatPanel = (function() {
     stickyItalic = document.getElementById('fpItalic').classList.contains('active');
     stickyStrikethrough = document.getElementById('fpStrike').classList.contains('active');
 
+    stickyRound10 = document.getElementById('ckRound10').checked;
+    stickyRound5  = document.getElementById('ckRound5').checked;
+
     var settings = {
       fontFamily: stickyFontFamily,
       fontSize: stickyFontSize,
@@ -489,12 +513,14 @@ var FloatPanel = (function() {
       bold: stickyBold,
       italic: stickyItalic,
       strikethrough: stickyStrikethrough,
-      textAlign: stickyTextAlign
+      textAlign: stickyTextAlign,
+      round5: stickyRound5,
+      round10: stickyRound10
     };
 
     App.showCD(
       '套用至全部 ' + count + ' 個價格框',
-      '目前的字樣設定（字型、大小、間距、顏色、格式、對齊）將覆蓋所有價格框的設定，無法還原。',
+      '目前的字樣設定（字型、大小、間距、顏色、格式、對齊、四捨五入）將覆蓋所有價格框的設定，無法還原。',
       '返回編輯',
       '確認全部變更',
       function() {
@@ -542,6 +568,7 @@ var FloatPanel = (function() {
     setOrient: setOrient,
     selectGroup: selectGroup,
     updateGroupInfo: updateGroupInfo,
+    updateCommissionUI: updateCommissionUI,
     updateNewPrice: updateNewPrice,
     onRoundChange: onRoundChange,
     onColorInput: onColorInput,

@@ -10,6 +10,7 @@ var App = (function() {
   var enhancementApplied = false;
   var globalDeal = 80;
   var isDealEnabled = false;
+  var isCommissionEnabled = true;
 
   try { hist = JSON.parse(localStorage.getItem('mhist') || '[]'); } catch(e) {}
 
@@ -54,6 +55,20 @@ var App = (function() {
       }
     });
 
+    // 商家抽成開關
+    document.getElementById('commissionToggle').addEventListener('change', function() {
+      isCommissionEnabled = this.checked;
+      var inputRow = document.getElementById('commissionInputRow');
+      var hint = document.getElementById('commissionHint');
+      if (inputRow) inputRow.classList.toggle('deal-disabled', !isCommissionEnabled);
+      if (hint) hint.style.display = isCommissionEnabled ? '' : 'none';
+      renderPriceList();
+      if (previewMode) redraw();
+      if (document.getElementById('fp').classList.contains('open')) {
+        FloatPanel.updateCommissionUI();
+      }
+    });
+
     // Deal % 數值
     document.getElementById('dealIn').addEventListener('input', function() {
       globalDeal = parseFloat(this.value) || 80;
@@ -70,6 +85,7 @@ var App = (function() {
 
   // ── 計算單一 box 最終新價格 ──
   function calcBoxPrice(box) {
+    if (!isCommissionEnabled) return box.newValue > 0 ? box.newValue : box.value;
     var commission = getEffPct(box);
     if (commission >= 100) return box.value; // 防止除以零
     var nv = Math.floor(box.value / (1 - commission / 100));
@@ -813,30 +829,62 @@ var App = (function() {
     });
   }
 
-  // ── 顆粒/噪點效果：對已填色的背景區域加入細微像素擾動 ──
+  // ── 顆粒/噪點效果：從原圖鄰近區域採樣真實紙張紋理並疊加 ──
   function addGrainToBox(ctx, box, origC) {
     var x = Math.round(box.x), y = Math.round(box.y);
     var w = Math.round(box.w), h = Math.round(box.h);
     if (w <= 2 || h <= 2) return;
 
-    // Sample noise level from original pixels above the box
     var origCtx2 = origC.getContext('2d');
-    var sy2 = Math.max(0, y - 12), sh2 = Math.min(12, y);
-    var noiseLevel = 4;
-    if (sh2 > 0) {
-      var sd2 = origCtx2.getImageData(x, sy2, w, sh2).data;
-      var lv = [];
-      for (var si2 = 0; si2 < sd2.length; si2 += 4) {
-        lv.push(0.299*sd2[si2] + 0.587*sd2[si2+1] + 0.114*sd2[si2+2]);
-      }
-      var m2 = lv.reduce(function(a,b){return a+b;}, 0) / (lv.length || 1);
-      var v2 = lv.reduce(function(s2,vv){return s2+(vv-m2)*(vv-m2);}, 0) / (lv.length || 1);
-      noiseLevel = Math.min(14, Math.max(2, Math.sqrt(v2) * 0.55));
-    }
-    if (noiseLevel < 1.5) return;
+    var imgW = origC.width, imgH = origC.height;
 
-    // Sample fill color from box center
-    var sm2 = Math.max(3, Math.floor(Math.min(w,h) * 0.2));
+    // ── 從原圖周圍四個候選區域採樣，取標準差最高（紋理最豐富）的區域 ──
+    var PAD = 4; // 間隔原盒邊緣幾像素再取樣
+    var SW = Math.min(w, 80), SH = Math.min(h, 80); // 採樣塊最大 80×80
+    var candidates = [
+      // 上方
+      { sx: x, sy: Math.max(0, y - SH - PAD), sw: Math.min(SW, w), sh: Math.min(SH, y - PAD) },
+      // 下方
+      { sx: x, sy: Math.min(imgH - 1, y + h + PAD), sw: Math.min(SW, w), sh: Math.min(SH, imgH - (y + h + PAD)) },
+      // 左方
+      { sx: Math.max(0, x - SW - PAD), sy: y, sw: Math.min(SW, x - PAD), sh: Math.min(SH, h) },
+      // 右方
+      { sx: Math.min(imgW - 1, x + w + PAD), sy: y, sw: Math.min(SW, imgW - (x + w + PAD)), sh: Math.min(SH, h) }
+    ];
+
+    var bestResiduals = null, bestStd = -1, bestW = 0, bestH = 0;
+    for (var ci = 0; ci < candidates.length; ci++) {
+      var c = candidates[ci];
+      if (c.sw < 4 || c.sh < 4 || c.sx < 0 || c.sy < 0 || c.sx + c.sw > imgW || c.sy + c.sh > imgH) continue;
+      var sd = origCtx2.getImageData(c.sx, c.sy, c.sw, c.sh).data;
+      // 計算亮度均值
+      var lsum = 0, cnt = c.sw * c.sh;
+      var lvals = new Float32Array(cnt);
+      for (var pi = 0; pi < cnt; pi++) {
+        var L = 0.299 * sd[pi*4] + 0.587 * sd[pi*4+1] + 0.114 * sd[pi*4+2];
+        lvals[pi] = L; lsum += L;
+      }
+      var lmean = lsum / cnt;
+      // 計算標準差
+      var vsum = 0;
+      for (var pi2 = 0; pi2 < cnt; pi2++) { var d = lvals[pi2] - lmean; vsum += d * d; }
+      var std = Math.sqrt(vsum / cnt);
+      if (std > bestStd) {
+        bestStd = std;
+        bestW = c.sw; bestH = c.sh;
+        // 計算殘差（紋理pattern = 亮度 - 均值）
+        bestResiduals = new Float32Array(cnt);
+        for (var pi3 = 0; pi3 < cnt; pi3++) { bestResiduals[pi3] = lvals[pi3] - lmean; }
+      }
+    }
+
+    if (!bestResiduals || bestStd < 1.2) return; // 紋理不夠豐富時跳過
+
+    // 縮放因子：讓輸出顆粒感適中
+    var scale = Math.min(1.0, Math.max(0.3, 6.0 / bestStd));
+
+    // ── 取樣填充色（用於判斷文字像素）──
+    var sm2 = Math.max(3, Math.floor(Math.min(w, h) * 0.2));
     var cw2 = Math.max(1, w - sm2*2), ch2 = Math.max(1, h - sm2*2);
     var cd2 = ctx.getImageData(x + sm2, y + sm2, cw2, ch2).data;
     var rr2 = [], gg2 = [], bb2 = [];
@@ -847,18 +895,23 @@ var App = (function() {
     var mid2 = Math.floor(rr2.length / 2);
     var fillR2 = rr2[mid2]||220, fillG2 = gg2[mid2]||220, fillB2 = bb2[mid2]||220;
 
-    // Apply noise, skip text pixels
+    // ── 將紋理殘差 tile 至填色區域 ──
     var bd2 = ctx.getImageData(x, y, w, h);
     var d2 = bd2.data;
-    var seed2 = ((box.x * 1000 + box.y) | 0);
-    for (var pi2 = 0; pi2 < d2.length; pi2 += 4) {
-      var dr2 = d2[pi2]-fillR2, dg2 = d2[pi2+1]-fillG2, db2 = d2[pi2+2]-fillB2;
-      if (dr2*dr2 + dg2*dg2 + db2*db2 > 4500) continue; // skip text pixels
-      seed2 = (seed2 * 1664525 + 1013904223) & 0x7fffffff;
-      var n2 = ((seed2 / 0x7fffffff) - 0.5) * 2 * noiseLevel;
-      d2[pi2]   = Math.max(0, Math.min(255, (d2[pi2]   + n2) | 0));
-      d2[pi2+1] = Math.max(0, Math.min(255, (d2[pi2+1] + n2) | 0));
-      d2[pi2+2] = Math.max(0, Math.min(255, (d2[pi2+2] + n2) | 0));
+    for (var py = 0; py < h; py++) {
+      for (var px = 0; px < w; px++) {
+        var idx = (py * w + px) * 4;
+        // 判斷是否為文字像素（與填充色差異大）
+        var dr2 = d2[idx]-fillR2, dg2 = d2[idx+1]-fillG2, db2 = d2[idx+2]-fillB2;
+        var isText = (dr2*dr2 + dg2*dg2 + db2*db2) > 4500;
+        var str = isText ? 0.30 : 1.0; // 文字像素保留 30% 紋理，背景 100%
+        // tile 採樣位置
+        var tx2 = px % bestW, ty2 = py % bestH;
+        var n2 = bestResiduals[ty2 * bestW + tx2] * scale * str;
+        d2[idx]   = Math.max(0, Math.min(255, (d2[idx]   + n2) | 0));
+        d2[idx+1] = Math.max(0, Math.min(255, (d2[idx+1] + n2) | 0));
+        d2[idx+2] = Math.max(0, Math.min(255, (d2[idx+2] + n2) | 0));
+      }
     }
     ctx.putImageData(bd2, x, y);
   }
@@ -1029,6 +1082,7 @@ var App = (function() {
   function getGlobalPct() { return parseFloat(document.getElementById('pctIn').value) || 0; }
   function getGlobalDeal() { return globalDeal; }
   function dealIsActive() { return isDealEnabled; }
+  function commissionIsActive() { return isCommissionEnabled; }
 
   function getEffPct(box) {
     if (box.group) {
@@ -1040,6 +1094,7 @@ var App = (function() {
 
   // ── 套用字樣至全部框 ──
   function applyFontToAll(settings) {
+    var applyRounding = (settings.round5 !== undefined || settings.round10 !== undefined);
     for (var i = 0; i < boxes.length; i++) {
       var b = boxes[i];
       if (settings.fontFamily !== undefined)    b.fontFamily    = settings.fontFamily;
@@ -1050,6 +1105,13 @@ var App = (function() {
       if (settings.italic !== undefined)        b.italic        = settings.italic;
       if (settings.strikethrough !== undefined) b.strikethrough = settings.strikethrough;
       if (settings.textAlign !== undefined)     b.textAlign     = settings.textAlign;
+      // 四捨五入：重新計算每個框的 newValue
+      if (applyRounding && b.value > 0) {
+        var nv = calcBoxPrice(b);
+        if (settings.round5)  nv = Math.ceil(nv / 5) * 5;
+        if (settings.round10) nv = Math.round(nv / 10) * 10;
+        b.newValue = nv;
+      }
     }
     redraw();
     renderPriceList();
@@ -1092,6 +1154,7 @@ var App = (function() {
     getGlobalPct: getGlobalPct,
     getGlobalDeal: getGlobalDeal,
     dealIsActive: dealIsActive,
+    commissionIsActive: commissionIsActive,
     toggleTips: toggleTips,
     setTipsOS: setTipsOS,
     applyFontToAll: applyFontToAll,

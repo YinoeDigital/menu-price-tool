@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>菜單價格調整工具</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
-<script>var APP_VERSION = '1.5.2';</script>
+<script>var APP_VERSION = '1.5.4';</script>
 </head>
 <body>
 <div class="app">
@@ -109,17 +112,23 @@
 
 
         <div>
-          <div class="sec-lbl">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
-            </svg>
-            商家抽成
+          <div class="sec-lbl" style="justify-content:space-between;align-items:center;">
+            <span style="display:flex;align-items:center;gap:5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
+              </svg>
+              商家抽成
+            </span>
+            <label class="tog" title="關閉後不計算抽成，可直接輸入新價格">
+              <input type="checkbox" id="commissionToggle" checked>
+              <span class="tog-sl"></span>
+            </label>
           </div>
-          <div class="pct-row">
+          <div class="pct-row" id="commissionInputRow">
             <input type="number" id="pctIn" value="35" placeholder="例：35">
             <div class="pct-badge" id="pctBadge">35%</div>
           </div>
-          <div style="font-size:11px;color:var(--gmd);margin-top:5px;">未指定群組的框選套用此抽成率</div>
+          <div style="font-size:11px;color:var(--gmd);margin-top:5px;" id="commissionHint">未指定群組的框選套用此抽成率</div>
         </div>
 
         <div>
@@ -475,8 +484,10 @@
             <div class="fi-row" style="margin-top:4px;padding-top:6px;border-top:1px solid var(--glt);">
               <span class="fi-lbl" style="font-weight:500;white-space:nowrap;">新價格</span>
               <div style="display:flex;align-items:center;gap:5px;">
-                <span class="fi-calc" id="fpCalc" title="依百分比計算的原始結果">—</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--gmd)" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+                <span id="fpCalcGroup" style="display:inline-flex;align-items:center;gap:5px;">
+                  <span class="fi-calc" id="fpCalc" title="依百分比計算的原始結果">—</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--gmd)" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+                </span>
                 <input type="number" class="fi-new-input" id="fpNew" placeholder="—" min="1" style="width:70px;min-width:0;">
               </div>
             </div>
@@ -666,7 +677,7 @@
       .then(function(data) {
         var latest = data.version || '';
         var badge = document.getElementById('verBadge');
-        if (badge) badge.textContent = 'v' + (APP_VERSION || latest);
+        if (badge) badge.textContent = 'v' + (latest || APP_VERSION);
         if (latest && latest !== APP_VERSION) {
           var note = document.getElementById('updNote');
           if (note && data.note) note.textContent = '新版 v' + latest + '：' + data.note;
