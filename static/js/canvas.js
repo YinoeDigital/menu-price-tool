@@ -1,4 +1,5 @@
-// canvas.js — Canvas 框選、縮放、平移、拖曳對齊
+// canvas.js — Canvas 框選、縮放、平移、拖曳對齊 v1.2.6
+console.log('[canvas.js] v1.2.6 loaded');
 
 var Canvas = (function() {
   var mc, ctx, cc, cw;
@@ -198,6 +199,9 @@ var Canvas = (function() {
     startX = p.x; startY = p.y;
     drawing = true;
     curBox = { x: p.x, y: p.y, w: 0, h: 0 };
+    var _dm = typeof FillEngine !== 'undefined' ? FillEngine.getMode() : 'n/a';
+    var _ds = typeof FillEngine !== 'undefined' ? FillEngine.isPatchSelecting() : false;
+    console.log('[onMouseDown] drawing=true mode=' + _dm + ' patchSelecting=' + _ds);
   }
 
   function onMouseMove(e) {
@@ -370,12 +374,19 @@ var Canvas = (function() {
     }
 
     // 補丁模式
+    var _feMode = typeof FillEngine !== 'undefined' ? FillEngine.getMode() : 'n/a';
+    var _feSel  = typeof FillEngine !== 'undefined' ? FillEngine.isPatchSelecting() : false;
+    var _feSrc  = typeof FillEngine !== 'undefined' ? !!FillEngine.getPatchSource() : false;
+    console.log('[onMouseUp] mode=' + _feMode + ' patchSelecting=' + _feSel + ' hasSource=' + _feSrc + ' w=' + w + ' h=' + h);
+
     if (typeof FillEngine !== 'undefined' && FillEngine.getMode() === 'patch' && FillEngine.isPatchSelecting()) {
+      console.log('[onMouseUp] → 設定來源 (source selection)');
       FillEngine.setPatchSource({ x: x, y: y, w: w, h: h });
       App.redraw();
       return;
     }
 
+    console.log('[onMouseUp] → 呼叫 onBoxDraw', !!onBoxDraw);
     if (onBoxDraw) onBoxDraw(x, y, w, h);
   }
 
