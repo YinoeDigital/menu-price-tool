@@ -1,4 +1,4 @@
 {
-  "version": "1.2.6",
-  "note": "重構填色流程：未設定來源時阻擋繪製並抖動提示，來源選取改為黑色框，紅色框專屬價格矩形，確保數字編輯視窗正常觸發"
+  "version": "1.2.7",
+  "note": "修復根本原因：index.html 缺少 selAffix 下拉選單，導致 FloatPanel.open() 拋出 TypeError 而無法開啟編輯視窗"
 }

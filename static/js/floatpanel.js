@@ -152,7 +152,6 @@ var FloatPanel = (function() {
   }
 
   function open(x, y, w, h) {
-    console.log('[FloatPanel.open] called', x, y, w, h);
     editingId = null;
     pendingBox = { x: x, y: y, w: w, h: h };
     fpGroup = null;

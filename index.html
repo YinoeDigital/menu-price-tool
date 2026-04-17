@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/css/style.css">
-<script>var APP_VERSION = '1.2.6';</script>
+<script>var APP_VERSION = '1.2.7';</script>
 </head>
 <body>
 <div class="app">
@@ -414,7 +414,14 @@
         <div class="fp-body">
           <div>
             <label class="fp-lbl">原始價格數值</label>
-            <input class="fp-input" type="text" id="fpVal" placeholder="例：880" inputmode="numeric" autocomplete="off">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <input class="fp-input" type="text" id="fpVal" placeholder="例：880" inputmode="numeric" autocomplete="off" style="flex:1;min-width:0;margin-bottom:0;">
+              <select id="selAffix" class="fp-affix-sel" onchange="FloatPanel.onAffixChange()">
+                <option value="none">無</option>
+                <option value="yuan">後綴「元」</option>
+                <option value="dollar">前綴「$」</option>
+              </select>
+            </div>
           </div>
           <div class="fp-info">
             <div class="fi-row"><span class="fi-lbl">框選尺寸</span><span class="fi-val" id="fpSz">—</span></div>
@@ -538,7 +545,7 @@
       <div class="sdot"></div>
       <span id="stTxt">等待上傳圖片</span>
       <span style="margin-left:auto;font-size:11px;color:var(--gmd);" id="coordTxt"></span>
-      <span class="ver-badge" id="verBadge" title="目前版本">v1.2.6</span>
+      <span class="ver-badge" id="verBadge" title="目前版本">v1.2.7</span>
     </div>
 
   </div><!-- /main -->
