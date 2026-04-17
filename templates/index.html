@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
-<script>var APP_VERSION = '1.5.4';</script>
+<script>var APP_VERSION = '1.5.5';</script>
 </head>
 <body>
 <div class="app">
@@ -408,8 +408,8 @@
       </div>
       <div class="cc" id="cc" style="display:none;">
         <canvas id="mc"></canvas>
-        <canvas id="guide-canvas"></canvas>
       </div>
+      <canvas id="guide-canvas"></canvas>
 
       <!-- Right Panel: 編輯清單 -->
       <div class="rp" id="rp">
@@ -455,8 +455,8 @@
           </button>
         </div>
         <div class="fp-body">
-          <div style="display:flex;gap:8px;align-items:flex-end;">
-            <div style="flex:1;min-width:0;">
+          <div class="fp-2col">
+            <div>
               <label class="fp-lbl">原始價格數值</label>
               <div class="fp-val-wrap">
                 <input class="fp-input" type="text" id="fpVal" placeholder="例：880" inputmode="numeric" autocomplete="off">
