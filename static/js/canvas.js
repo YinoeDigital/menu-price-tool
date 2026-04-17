@@ -177,6 +177,11 @@ var Canvas = (function() {
       }
     }
 
+    // Guide delete: click within threshold of a guide line
+    if (typeof Rulers !== 'undefined' && !spaceHeld && !e.altKey) {
+      if (Rulers.tryDeleteGuide(p.x, p.y)) { e.preventDefault(); return; }
+    }
+
     if (document.getElementById('fp').classList.contains('open')) return;
 
     // 若紋理補丁模式但尚未設定來源 → 抖動提示，阻擋繪製
@@ -442,6 +447,7 @@ var Canvas = (function() {
   function applyTransform() {
     cc.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + zoomLevel + ')';
     cc.style.transformOrigin = '0 0';
+    if (typeof Rulers !== 'undefined') Rulers.redraw();
   }
 
   function updateZoomVal() {
@@ -457,6 +463,7 @@ var Canvas = (function() {
     panY = Math.max(0, (cw.clientHeight - img.height * zoomLevel) / 2);
     applyTransform();
     updateZoomVal();
+    if (typeof Rulers !== 'undefined') Rulers.redraw();
   }
 
   function zoom(delta) {

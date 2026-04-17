@@ -343,7 +343,12 @@ select:focus,input:focus{border-color:var(--red);}
 .zoom-val{font-size:12px;color:var(--gmd);min-width:40px;text-align:center;font-weight:500;}
 
 /* Canvas area */
-.cw{flex:1;overflow:hidden;background:#C5C0B8;position:relative;}
+.ruler-area{flex:1;display:grid;grid-template-columns:20px 1fr;grid-template-rows:20px 1fr;overflow:hidden;min-height:0;}
+.ruler-corner{background:#ebebeb;border-right:1px solid #ccc;border-bottom:1px solid #ccc;z-index:3;}
+canvas.ruler-h{display:block;height:20px;cursor:s-resize;background:#ebebeb;border-bottom:1px solid #ccc;z-index:3;}
+canvas.ruler-v{display:block;width:20px;cursor:e-resize;background:#ebebeb;border-right:1px solid #ccc;z-index:3;}
+.cw{overflow:hidden;background:#C5C0B8;position:relative;min-height:0;min-width:0;}
+#guide-canvas{position:absolute;top:0;left:0;pointer-events:none;z-index:5;}
 .cc{position:absolute;transform-origin:0 0;}
 #mc{display:block;cursor:crosshair;}
 
@@ -605,6 +610,9 @@ select:focus,input:focus{border-color:var(--red);}
 /* FillEngine hint blocks */
 #patch-hint input[type=range],
 #autofill-hint input[type=range]{accent-color:var(--red);}
+
+/* ── Patch select button selecting state ── */
+#btnPatchSelect.selecting{background:var(--red) !important;color:#fff !important;border-color:var(--red) !important;}
 
 /* ── 群組 Help 按鈕 ── */
 .grp-help-btn{

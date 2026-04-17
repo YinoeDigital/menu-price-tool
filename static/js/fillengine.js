@@ -49,9 +49,35 @@ var FillEngine = (function () {
   function setPatchSelecting(v) { patchSelecting = v; }
   function getPatchSource() { return patchSource; }
 
+  function startPatchSelect() {
+    patchSource = null; // clear old source
+    patchSelecting = true;
+
+    // Reset preview
+    var preview = document.getElementById('patch-source-preview');
+    if (preview) { preview.style.display = 'none'; preview.src = ''; }
+
+    // Update badge + button to "selecting" state
+    var badge = document.getElementById('patchRequiredBadge');
+    if (badge) { badge.textContent = '選取中…'; badge.style.background = '#E67E22'; }
+    var btn = document.getElementById('btnPatchSelect');
+    if (btn) {
+      btn.classList.add('selecting');
+      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="4 2"/></svg> 拖拉框選來源區域…';
+    }
+    App.setSt('請在空白背景處拖拉框選來源紋理區域（黑色虛線框）');
+  }
+
   function setPatchSource(src) {
     patchSource = src;
     patchSelecting = false;
+
+    // Restore button from selecting state
+    var btn2 = document.getElementById('btnPatchSelect');
+    if (btn2) {
+      btn2.classList.remove('selecting');
+      btn2.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 重新選取來源';
+    }
 
     // 顯示來源預覽縮圖
     var canvas = Canvas.getCanvas();
@@ -252,6 +278,7 @@ var FillEngine = (function () {
     setPatchSelecting: setPatchSelecting,
     getPatchSource: getPatchSource,
     setPatchSource: setPatchSource,
+    startPatchSelect: startPatchSelect,
     applyAutoFill: applyAutoFill,
     applyPatch: applyPatch,
     apply: apply,

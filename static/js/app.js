@@ -107,6 +107,23 @@ var App = (function() {
     rd.readAsDataURL(f);
   }
 
+  // ── 前後綴溢出背景填色 ──
+  function fillAffixOverflow(ctx, ns, tx, box, bgColor) {
+    var tw = ctx.measureText(ns).width;
+    var textLeft = ctx.textAlign === 'left' ? tx : ctx.textAlign === 'right' ? tx - tw : tx - tw / 2;
+    var textRight = textLeft + tw;
+    if (textLeft >= box.x && textRight <= box.x + box.w) return; // no overflow
+    var fr = bgColor && bgColor.r !== undefined ? bgColor.r : 220;
+    var fg = bgColor && bgColor.g !== undefined ? bgColor.g : 220;
+    var fb = bgColor && bgColor.b !== undefined ? bgColor.b : 220;
+    var fillLeft  = Math.min(textLeft - 2, box.x);
+    var fillRight = Math.max(textRight + 2, box.x + box.w);
+    ctx.save();
+    ctx.fillStyle = 'rgb(' + fr + ',' + fg + ',' + fb + ')';
+    ctx.fillRect(fillLeft, box.y, fillRight - fillLeft, box.h);
+    ctx.restore();
+  }
+
   // ── REDRAW ──
   // 拖曳期間輕量渲染：只畫框線，跳過 FillEngine（避免 lag）
   function fastRedraw() {
@@ -202,6 +219,7 @@ var App = (function() {
           ctx.fillStyle = tc; ctx.textBaseline = vAl === 'top' ? 'alphabetic' : 'middle';
           var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
           ctx.textAlign = bAlign;
+          fillAffixOverflow(ctx, ns, tx, box, bgColor);
           ctx.fillText(ns, tx, ty);
           // 雙刪除線
           if (box.strikethrough) {
@@ -410,6 +428,7 @@ var App = (function() {
         oc.fillStyle = tc; oc.textBaseline = vAl2 === 'top' ? 'alphabetic' : 'middle';
         var tx2 = bAlign2 === 'left' ? box.x + 4 : bAlign2 === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
         oc.textAlign = bAlign2;
+        fillAffixOverflow(oc, ns, tx2, box, bgColor);
         oc.fillText(ns, tx2, ty2);
         if (box.strikethrough) {
           var tw2 = oc.measureText(ns).width;
@@ -430,6 +449,7 @@ var App = (function() {
       origC3.getContext('2d').drawImage(img, 0, 0);
       for (var ei = 0; ei < boxes.length; ei++) {
         blendBoxEdge(oc, off, origC3, boxes[ei]);
+        addGrainToBox(oc, boxes[ei], origC3);
       }
     }
     var fmt = mc.dataset.fmt || 'png';
@@ -656,6 +676,13 @@ var App = (function() {
     var btn = document.getElementById('tbEnhance');
     if (btn) btn.disabled = true;
 
+    // Force preview mode so alignment is visible
+    if (!previewMode) {
+      previewMode = true;
+      var pb = document.getElementById('tbPrev');
+      if (pb) pb.classList.add('active');
+    }
+
     // Step 1：偵測垂直欄/水平列，自動套用靠右/靠上對齊
     detectColumnAlignment();
 
@@ -709,6 +736,7 @@ var App = (function() {
           if (!done[box.id] && (box.y + box.h * 0.5) <= canvasY) {
             done[box.id] = true;
             blendBoxEdge(ctx, canvas, origC, box);
+            addGrainToBox(ctx, box, origC);
           }
         }
 
@@ -732,7 +760,11 @@ var App = (function() {
   // ── 自動對齊偵測：垂直欄→靠右，水平列→靠上 ──
   function detectColumnAlignment() {
     if (boxes.length < 2) return;
-    var X_THRESH = 50, Y_THRESH = 40, MIN_GRP = 2;
+    var avgW = boxes.reduce(function(s,b){return s+b.w;},0)/boxes.length;
+    var avgH = boxes.reduce(function(s,b){return s+b.h;},0)/boxes.length;
+    var X_THRESH = Math.min(80, Math.max(20, avgW * 0.5));
+    var Y_THRESH = Math.min(60, Math.max(15, avgH * 0.5));
+    var MIN_GRP = 2;
     var inCol = {}, inRow = {};
 
     // 找垂直欄（center-X 相近）
@@ -756,6 +788,56 @@ var App = (function() {
       if (inCol[box.id])      { box.textAlign = 'right'; }
       else if (inRow[box.id]) { box.verticalAlign = 'top'; }
     });
+  }
+
+  // ── 顆粒/噪點效果：對已填色的背景區域加入細微像素擾動 ──
+  function addGrainToBox(ctx, box, origC) {
+    var x = Math.round(box.x), y = Math.round(box.y);
+    var w = Math.round(box.w), h = Math.round(box.h);
+    if (w <= 2 || h <= 2) return;
+
+    // Sample noise level from original pixels above the box
+    var origCtx2 = origC.getContext('2d');
+    var sy2 = Math.max(0, y - 12), sh2 = Math.min(12, y);
+    var noiseLevel = 4;
+    if (sh2 > 0) {
+      var sd2 = origCtx2.getImageData(x, sy2, w, sh2).data;
+      var lv = [];
+      for (var si2 = 0; si2 < sd2.length; si2 += 4) {
+        lv.push(0.299*sd2[si2] + 0.587*sd2[si2+1] + 0.114*sd2[si2+2]);
+      }
+      var m2 = lv.reduce(function(a,b){return a+b;}, 0) / (lv.length || 1);
+      var v2 = lv.reduce(function(s2,vv){return s2+(vv-m2)*(vv-m2);}, 0) / (lv.length || 1);
+      noiseLevel = Math.min(14, Math.max(2, Math.sqrt(v2) * 0.55));
+    }
+    if (noiseLevel < 1.5) return;
+
+    // Sample fill color from box center
+    var sm2 = Math.max(3, Math.floor(Math.min(w,h) * 0.2));
+    var cw2 = Math.max(1, w - sm2*2), ch2 = Math.max(1, h - sm2*2);
+    var cd2 = ctx.getImageData(x + sm2, y + sm2, cw2, ch2).data;
+    var rr2 = [], gg2 = [], bb2 = [];
+    for (var ci2 = 0; ci2 < cd2.length; ci2 += 4) {
+      rr2.push(cd2[ci2]); gg2.push(cd2[ci2+1]); bb2.push(cd2[ci2+2]);
+    }
+    rr2.sort(function(a,b){return a-b;}); gg2.sort(function(a,b){return a-b;}); bb2.sort(function(a,b){return a-b;});
+    var mid2 = Math.floor(rr2.length / 2);
+    var fillR2 = rr2[mid2]||220, fillG2 = gg2[mid2]||220, fillB2 = bb2[mid2]||220;
+
+    // Apply noise, skip text pixels
+    var bd2 = ctx.getImageData(x, y, w, h);
+    var d2 = bd2.data;
+    var seed2 = ((box.x * 1000 + box.y) | 0);
+    for (var pi2 = 0; pi2 < d2.length; pi2 += 4) {
+      var dr2 = d2[pi2]-fillR2, dg2 = d2[pi2+1]-fillG2, db2 = d2[pi2+2]-fillB2;
+      if (dr2*dr2 + dg2*dg2 + db2*db2 > 4500) continue; // skip text pixels
+      seed2 = (seed2 * 1664525 + 1013904223) & 0x7fffffff;
+      var n2 = ((seed2 / 0x7fffffff) - 0.5) * 2 * noiseLevel;
+      d2[pi2]   = Math.max(0, Math.min(255, (d2[pi2]   + n2) | 0));
+      d2[pi2+1] = Math.max(0, Math.min(255, (d2[pi2+1] + n2) | 0));
+      d2[pi2+2] = Math.max(0, Math.min(255, (d2[pi2+2] + n2) | 0));
+    }
+    ctx.putImageData(bd2, x, y);
   }
 
   // 核心像素融合：對單一 box 的邊緣做 smoothstep 融合（保護文字像素）
