@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
-<script>var APP_VERSION = '1.2.9';</script>
+<script>var APP_VERSION = '1.3.0';</script>
 </head>
 <body>
 <div class="app">
@@ -415,7 +415,12 @@
           <div>
             <label class="fp-lbl">原始價格數值</label>
             <div style="display:flex;align-items:center;gap:6px;">
-              <input class="fp-input" type="text" id="fpVal" placeholder="例：880" inputmode="numeric" autocomplete="off" style="flex:1;min-width:0;margin-bottom:0;">
+              <div class="fp-val-wrap">
+                <input class="fp-input" type="text" id="fpVal" placeholder="例：880" inputmode="numeric" autocomplete="off">
+                <span class="fp-val-check" id="fpValCheck" title="已記錄數值">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              </div>
               <select id="selAffix" class="fp-affix-sel" onchange="FloatPanel.onAffixChange()">
                 <option value="none">無</option>
                 <option value="yuan">後綴「元」</option>
@@ -545,7 +550,7 @@
       <div class="sdot"></div>
       <span id="stTxt">等待上傳圖片</span>
       <span style="margin-left:auto;font-size:11px;color:var(--gmd);" id="coordTxt"></span>
-      <span class="ver-badge" id="verBadge" title="目前版本">v1.2.9</span>
+      <span class="ver-badge" id="verBadge" title="目前版本">v1.3.0</span>
     </div>
 
   </div><!-- /main -->

@@ -29,6 +29,13 @@ var FloatPanel = (function() {
   var stickyTextAlign = 'center'; // 'left' | 'center' | 'right'
   var stickyPriceAffix = 'none'; // 'none' | 'yuan' | 'dollar'
 
+  // ── fpVal 打勾 icon 狀態 ──
+  function setFpValCheck(active) {
+    var el = document.getElementById('fpValCheck');
+    if (!el) return;
+    el.classList.toggle('active', !!active);
+  }
+
   function init() {
     var valEl = document.getElementById('fpVal');
 
@@ -36,6 +43,8 @@ var FloatPanel = (function() {
     valEl.addEventListener('input', function() {
       updateNewPrice();
       this.classList.remove('err');
+      // 欄位清空 → 打勾變灰
+      if (!stripCommas(this.value).replace(/[^0-9]/g, '')) setFpValCheck(false);
     });
 
     // keyup：補捉 input 未觸發的情況（如 OCR 填入後 select-all 覆蓋的第一個按鍵）
@@ -75,7 +84,20 @@ var FloatPanel = (function() {
     });
 
     valEl.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') confirm();
+      if (e.key === 'Enter') {
+        // Enter = 確認原始數值並重算（不關閉面板）
+        var raw = stripCommas(this.value).replace(/[^0-9]/g, '');
+        if (raw) {
+          this.value = formatCommas(parseInt(raw, 10));
+          _pollLast = this.value;
+          updateNewPrice();
+          setFpValCheck(true);
+        } else {
+          setFpValCheck(false);
+        }
+        e.preventDefault();
+        return;
+      }
       if (e.key === 'Escape') reqClose();
     });
 
@@ -182,6 +204,7 @@ var FloatPanel = (function() {
     document.getElementById('fpVal').value = '';
     document.getElementById('fpNew').value = '';
     document.getElementById('fpVal').classList.remove('err');
+    setFpValCheck(false); // 重置打勾狀態
     document.getElementById('fp').classList.add('open');
     setTimeout(function() { document.getElementById('fpVal').focus(); }, 260);
 
@@ -196,7 +219,8 @@ var FloatPanel = (function() {
           fpValEl.focus();   // 確保焦點在欄位上（觸發 focus → 啟動輪詢 + select）
           updateNewPrice();
           _pollLast = fpValEl.value; // 同步輪詢基準值，避免立刻誤判為「有變動」
-          App.setSt('✦ 識別到價格：' + num + '，如有誤請直接修改');
+          setFpValCheck(true); // OCR 偵測成功 → 綠勾
+          App.setSt('✦ 識別到價格：' + num + '，如有誤請直接修改後按 Enter 確認');
         } else {
           App.setSt('請在左側面板輸入原始價格數值');
         }
@@ -232,6 +256,7 @@ var FloatPanel = (function() {
     Groups.renderChips(fpGroup);
     document.getElementById('fpVal').value = formatCommas(box.value);
     document.getElementById('fpVal').classList.remove('err');
+    setFpValCheck(box.value > 0); // 已有值 → 綠勾
     // 顯示原始計算值（參考）與最終值
     var g2 = fpGroup ? Groups.getById(fpGroup) : null;
     var pct2 = g2 ? g2.pct : App.getGlobalPct();

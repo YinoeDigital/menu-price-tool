@@ -434,6 +434,16 @@ select:focus,input:focus{border-color:var(--red);}
 }
 .fp-input:focus{border-color:var(--red);}
 .fp-input.err{border-color:#e74c3c;background:#fff5f5;}
+/* fpVal wrapper + 打勾 icon */
+.fp-val-wrap{position:relative;flex:1;min-width:0;}
+.fp-val-wrap .fp-input{width:100%;padding-right:30px;margin-bottom:0;box-sizing:border-box;}
+.fp-val-check{
+  position:absolute;right:9px;top:50%;transform:translateY(-50%);
+  pointer-events:none;display:flex;align-items:center;
+  color:#D0D0D0;transition:color .25s;
+}
+.fp-val-check.active{color:#27AE60;}
+
 .fp-affix-sel{flex:1;min-width:0;font-size:12px;padding:5px 6px;border:1px solid var(--glt);border-radius:var(--r);background:var(--bg);color:var(--gdk);cursor:pointer;outline:none;height:34px;}
 .fp-affix-sel:focus{border-color:var(--red);}
 .fp-info{background:var(--cream);border-radius:var(--r);padding:7px 10px;border:1px solid var(--glt);}
