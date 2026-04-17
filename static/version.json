@@ -1,4 +1,4 @@
 {
-  "version": "1.2.7",
-  "note": "修復根本原因：index.html 缺少 selAffix 下拉選單，導致 FloatPanel.open() 拋出 TypeError 而無法開啟編輯視窗"
+  "version": "1.2.8",
+  "note": "修復：fpVal 與 selAffix 等寬布局（兩者均 flex:1）；fp 面板新增 wheel 阻止冒泡，防止滾輪穿透觸發畫布縮放"
 }

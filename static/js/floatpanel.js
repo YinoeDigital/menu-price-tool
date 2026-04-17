@@ -83,6 +83,11 @@ var FloatPanel = (function() {
     document.getElementById('fpFontColor').addEventListener('dblclick', function() {
       FloatPanel.resetColor();
     });
+
+    // 防止滾輪事件穿透到畫布（避免在 fp 面板內滾動時觸發畫布縮放）
+    document.getElementById('fp').addEventListener('wheel', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
   }
 
   function onFontChange() {
