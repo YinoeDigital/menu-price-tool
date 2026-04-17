@@ -80,6 +80,13 @@ var Canvas = (function() {
         e.preventDefault();
       }
       if (e.code === 'Escape') {
+        // 優先關閉 FloatPanel（無論焦點在哪）
+        var fp = document.getElementById('fp');
+        if (fp && fp.classList.contains('open')) {
+          if (typeof FloatPanel !== 'undefined') FloatPanel.reqClose();
+          return;
+        }
+        // 退出多選模式
         if (capsMode || selectedIds.length) {
           capsMode = false;
           if (mc) mc.style.cursor = 'crosshair';
@@ -91,6 +98,7 @@ var Canvas = (function() {
     cw.addEventListener('mousedown', function(e) {
       if (!document.getElementById('fp').classList.contains('open')) return;
       if (document.getElementById('fp').contains(e.target)) return;
+      if (e.altKey) return; // Alt+拖曳移動框需要穿透到 canvas
       e.stopPropagation();
       e.preventDefault();
       if (window.FloatPanel) FloatPanel.nudgeButtons();
