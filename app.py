@@ -14,14 +14,20 @@ MIME = {
     '.ico': 'image/x-icon',
 }
 
+NO_CACHE_HEADERS = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+}
+
 def serve_file(filepath, mime):
     is_text = mime.startswith('text') or mime in ('application/javascript', 'application/json')
     if is_text:
         with open(filepath, 'r', encoding='utf-8') as f:
-            return Response(f.read(), mimetype=mime)
+            return Response(f.read(), mimetype=mime, headers=NO_CACHE_HEADERS)
     else:
         with open(filepath, 'rb') as f:
-            return Response(f.read(), mimetype=mime)
+            return Response(f.read(), mimetype=mime, headers=NO_CACHE_HEADERS)
 
 try:
     from flask import Flask

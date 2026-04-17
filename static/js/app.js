@@ -585,6 +585,7 @@ var App = (function() {
 
   function renderHist() {
     var el = document.getElementById('histList');
+    if (!el) return; // histList 元素不存在時直接略過
     if (!hist.length) {
       el.innerHTML = '<div style="text-align:center;padding:10px;color:var(--gmd);font-size:12px;">尚無紀錄</div>';
       return;

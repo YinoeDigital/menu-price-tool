@@ -1,4 +1,4 @@
 {
-  "version": "1.4.1",
-  "note": "修正：bindUI() 因 id=ji 元素不存在而崩潰，導致 FloatPanel.init() 未執行（打勾/Deal% toggle 均失效）"
+  "version": "1.4.2",
+  "note": "修正：renderHist null crash；Flask 加 no-cache header 確保每次載入最新版本"
 }
