@@ -34,6 +34,10 @@ var Canvas = (function() {
   var selectedIds = [];
   var _selRafId = null; // rAF throttle handle
 
+  // ── 群組拖曳（Alt + 拖曳多選框）──
+  var isDragGroup = false;
+  var dragGroupOrigins = []; // [{ id, origX, origY }, ...]
+
   function init(canvasId, containerId, onDraw) {
     mc = document.getElementById(canvasId);
     ctx = mc.getContext('2d');
@@ -232,6 +236,22 @@ var Canvas = (function() {
     };
   }
 
+  // 依當前 selectedIds 重新計算並更新 alignBar 位置
+  function refreshAlignBar() {
+    if (!selectedIds.length) { hideAlignBar(); return; }
+    var allBoxes = App.getBoxes();
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (var i = 0; i < allBoxes.length; i++) {
+      if (selectedIds.indexOf(allBoxes[i].id) >= 0) {
+        minX = Math.min(minX, allBoxes[i].x);
+        minY = Math.min(minY, allBoxes[i].y);
+        maxX = Math.max(maxX, allBoxes[i].x + allBoxes[i].w);
+        maxY = Math.max(maxY, allBoxes[i].y + allBoxes[i].h);
+      }
+    }
+    showAlignBar(minX, minY, maxX, maxY);
+  }
+
   function showAlignBar(selX1, selY1, selX2, selY2) {
     var bar = document.getElementById('alignBar');
     if (!bar) return;
@@ -290,7 +310,7 @@ var Canvas = (function() {
 
     var p = toCanvas(e.clientX, e.clientY);
 
-    // 2. Alt → 拖曳移動框
+    // 2. Alt → 拖曳移動框（若點到多選框之一 → 群組拖曳）
     if (e.altKey) {
       var boxes = App.getBoxes();
       for (var bi = boxes.length - 1; bi >= 0; bi--) {
@@ -303,6 +323,19 @@ var Canvas = (function() {
           dragOrigX = bx.x;
           dragOrigY = bx.y;
           dragMoved = false;
+          // 若此框在多選集合中 → 群組拖曳
+          if (selectedIds.length > 1 && selectedIds.indexOf(bx.id) >= 0) {
+            isDragGroup = true;
+            dragGroupOrigins = [];
+            for (var gi = 0; gi < boxes.length; gi++) {
+              if (selectedIds.indexOf(boxes[gi].id) >= 0) {
+                dragGroupOrigins.push({ id: boxes[gi].id, origX: boxes[gi].x, origY: boxes[gi].y });
+              }
+            }
+          } else {
+            isDragGroup = false;
+            dragGroupOrigins = [];
+          }
           mc.style.cursor = 'grabbing';
           e.preventDefault();
           return;
@@ -343,12 +376,14 @@ var Canvas = (function() {
     }
 
     // 4. 預設 → 多選框選（mousedown 記錄起點）
+    var hadSel = selectedIds.length > 0;
     isMultiSel = true;
     selStartC = { x: p.x, y: p.y };
     selEndC   = { x: p.x, y: p.y };
     selectedIds = [];
     hideAlignBar();
     Rulers.clearSelRect();
+    if (hadSel) App.redraw(); // 立即清除選取高亮
   }
 
   function onMouseMove(e) {
@@ -374,6 +409,29 @@ var Canvas = (function() {
       var newX = p.x - dragOffX;
       var newY = p.y - dragOffY;
       var g = computeGuides(newX, newY, dragBox.w, dragBox.h);
+      if (isDragGroup) {
+        // 群組拖曳：同步移動所有選取框
+        var deltaX = (g.snapX !== null ? g.snapX : newX) - dragOrigX;
+        var deltaY = (g.snapY !== null ? g.snapY : newY) - dragOrigY;
+        var allBxs = App.getBoxes();
+        for (var dgi = 0; dgi < dragGroupOrigins.length; dgi++) {
+          var orig = dragGroupOrigins[dgi];
+          for (var dbi = 0; dbi < allBxs.length; dbi++) {
+            if (String(allBxs[dbi].id) === String(orig.id)) {
+              allBxs[dbi].x = orig.origX + deltaX;
+              allBxs[dbi].y = orig.origY + deltaY;
+              break;
+            }
+          }
+        }
+        dragBox.x = dragOrigX + deltaX;
+        dragBox.y = dragOrigY + deltaY;
+        dragMoved = true;
+        App.fastRedraw(); // fastRedraw 內部已呼叫 drawSelOverlays
+        drawGuides(g);
+        document.getElementById('coordTxt').textContent = 'x:' + Math.round(dragBox.x) + ' y:' + Math.round(dragBox.y);
+        return;
+      }
       if (g.snapX !== null) newX = g.snapX;
       if (g.snapY !== null) newY = g.snapY;
       dragBox.x = newX;
@@ -479,6 +537,27 @@ var Canvas = (function() {
     var newX = p.x - dragOffX;
     var newY = p.y - dragOffY;
     var g = computeGuides(newX, newY, dragBox.w, dragBox.h);
+    if (isDragGroup) {
+      var deltaX = (g.snapX !== null ? g.snapX : newX) - dragOrigX;
+      var deltaY = (g.snapY !== null ? g.snapY : newY) - dragOrigY;
+      var allBxs2 = App.getBoxes();
+      for (var dgi2 = 0; dgi2 < dragGroupOrigins.length; dgi2++) {
+        var orig2 = dragGroupOrigins[dgi2];
+        for (var dbi2 = 0; dbi2 < allBxs2.length; dbi2++) {
+          if (String(allBxs2[dbi2].id) === String(orig2.id)) {
+            allBxs2[dbi2].x = orig2.origX + deltaX;
+            allBxs2[dbi2].y = orig2.origY + deltaY;
+            break;
+          }
+        }
+      }
+      dragBox.x = dragOrigX + deltaX;
+      dragBox.y = dragOrigY + deltaY;
+      dragMoved = true;
+      App.fastRedraw();
+      drawGuides(g);
+      return;
+    }
     if (g.snapX !== null) newX = g.snapX;
     if (g.snapY !== null) newY = g.snapY;
     dragBox.x = newX;
@@ -511,8 +590,7 @@ var Canvas = (function() {
               selectedIds.push(sb.id);
             }
           }
-          App.fastRedraw();
-          drawSelOverlays();
+          App.redraw(); // 使用完整 redraw 以顯示 FillEngine 填色
           if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
           else App.redraw();
         } else {
@@ -532,7 +610,20 @@ var Canvas = (function() {
       return;
     }
 
-    // 拖曳結束
+    // 群組拖曳結束
+    if (isDragging && isDragGroup) {
+      isDragging = false;
+      isDragGroup = false;
+      mc.style.cursor = tabHeld ? 'crosshair' : 'default';
+      if (dragMoved) { App.renderPriceList(); }
+      App.redraw(); // 顯示 FillEngine 填色
+      refreshAlignBar();
+      dragBox = null;
+      dragGroupOrigins = [];
+      return;
+    }
+
+    // 單一框拖曳結束
     if (isDragging) {
       isDragging = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
@@ -592,14 +683,25 @@ var Canvas = (function() {
               selectedIds.push(sb.id);
             }
           }
-          App.fastRedraw();
-          drawSelOverlays();
+          App.redraw(); // 完整 redraw 以顯示 FillEngine 填色
           if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
           else App.redraw();
         } else {
           App.redraw();
         }
       }
+      return;
+    }
+
+    if (isDragging && isDragGroup) {
+      isDragging = false;
+      isDragGroup = false;
+      mc.style.cursor = tabHeld ? 'crosshair' : 'default';
+      if (dragMoved) { App.renderPriceList(); }
+      App.redraw();
+      refreshAlignBar();
+      dragBox = null;
+      dragGroupOrigins = [];
       return;
     }
 
