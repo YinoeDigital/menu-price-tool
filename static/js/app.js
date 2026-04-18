@@ -12,6 +12,47 @@ var App = (function() {
   var isDealEnabled = false;
   var isCommissionEnabled = true;
 
+  // ── UNDO / REDO ──
+  var undoStack = [];
+  var redoStack = [];
+  var MAX_UNDO = 30;
+
+  function saveState() {
+    undoStack.push(JSON.stringify(boxes));
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+    redoStack = [];
+    _updateUndoUI();
+  }
+
+  function undo() {
+    if (!undoStack.length) { setSt('沒有可復原的操作'); return; }
+    redoStack.push(JSON.stringify(boxes));
+    boxes = JSON.parse(undoStack.pop());
+    renderPriceList();
+    if (typeof Canvas !== 'undefined' && typeof Canvas.clearMultiSel === 'function') Canvas.clearMultiSel();
+    redraw();
+    _updateUndoUI();
+    setSt('↩ 已復原');
+  }
+
+  function redo() {
+    if (!redoStack.length) { setSt('沒有可重做的操作'); return; }
+    undoStack.push(JSON.stringify(boxes));
+    boxes = JSON.parse(redoStack.pop());
+    renderPriceList();
+    if (typeof Canvas !== 'undefined' && typeof Canvas.clearMultiSel === 'function') Canvas.clearMultiSel();
+    redraw();
+    _updateUndoUI();
+    setSt('↪ 已重做');
+  }
+
+  function _updateUndoUI() {
+    var u = document.getElementById('btnUndo');
+    var r = document.getElementById('btnRedo');
+    if (u) u.disabled = undoStack.length === 0;
+    if (r) r.disabled = redoStack.length === 0;
+  }
+
   try { hist = JSON.parse(localStorage.getItem('mhist') || '[]'); } catch(e) {}
 
   // ── INIT ──
@@ -164,6 +205,108 @@ var App = (function() {
   }
 
   // ── REDRAW ──
+
+  // 拖曳期間單一框的 FillEngine + 文字渲染（被 dragRedraw 呼叫）
+  function _renderBoxPreview(ctx, mc, box) {
+    var globalFont = document.getElementById('fontSel').value;
+    var font = box.fontFamily || globalFont;
+    var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
+    var bgColor = FillEngine.apply(ctx, mc, box, {
+      fillMode: box.fillMode,
+      patchSource: box.patchSource,
+      feather: box.fillMode === 'patch' ? FillEngine.getFeather('patch') : FillEngine.getFeather('autofill')
+    });
+    var r2, gv2, b2;
+    if (bgColor && bgColor.r !== undefined) {
+      r2 = bgColor.r; gv2 = bgColor.g; b2 = bgColor.b;
+    } else {
+      var sid = ctx.getImageData(Math.max(0, box.x + 2), Math.max(0, box.y + 2), 4, 4);
+      r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
+    }
+    var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
+    var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
+    var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
+    var ns;
+    switch (_affix) {
+      case 'yuan':      ns = String(nv) + '元'; break;
+      case 'yuan_sp':   ns = String(nv) + ' 元'; break;
+      case 'dollar':    ns = '$' + String(nv); break;
+      case 'dollar_sp': ns = '$ ' + String(nv); break;
+      default:          ns = String(nv);
+    }
+    var bls = (box.letterSpacing || 0) + 'px';
+    var bStyle = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
+    var bAlign = box.textAlign || 'center';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = bls;
+    if (box.orient === 'vertical') {
+      var ch = box.h / ns.length;
+      var fs = box.fontSize > 0 ? box.fontSize : Math.min(ch * 0.88, box.w * 0.92);
+      ctx.font = bStyle + Math.round(fs) + "px '" + font + "',serif";
+      ctx.fillStyle = tc; ctx.textAlign = bAlign;
+      var charX = bAlign === 'right' ? box.x + box.w - 3 : bAlign === 'left' ? box.x + 3 : box.x + box.w / 2;
+      for (var ci = 0; ci < ns.length; ci++) {
+        ctx.fillText(ns[ci], charX, box.y + ch * (ci + 0.8));
+      }
+    } else {
+      var zoom = Canvas.getZoom();
+      var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
+      ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
+      var vAl = box.verticalAlign || 'middle';
+      var ty  = vAl === 'top' ? box.y + Math.round(fs2 * 0.82) : box.y + box.h / 2;
+      ctx.fillStyle = tc; ctx.textBaseline = vAl === 'top' ? 'alphabetic' : 'middle';
+      var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
+      ctx.textAlign = bAlign;
+      fillAffixOverflow(ctx, ns, tx, box, bgColor);
+      ctx.fillText(ns, tx, ty);
+      if (box.strikethrough) {
+        var tw = ctx.measureText(ns).width;
+        var lx0 = bAlign === 'left' ? tx : bAlign === 'right' ? tx - tw : tx - tw / 2;
+        var lw2 = Math.max(1, fs2 * 0.07);
+        ctx.strokeStyle = tc; ctx.lineWidth = lw2; ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(lx0, ty - fs2 * 0.12); ctx.lineTo(lx0 + tw, ty - fs2 * 0.12); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(lx0, ty + fs2 * 0.08); ctx.lineTo(lx0 + tw, ty + fs2 * 0.08); ctx.stroke();
+      }
+      ctx.textBaseline = 'alphabetic';
+    }
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  }
+
+  // 拖曳期間渲染：拖曳中的框用 FillEngine 顯示填色，其餘只畫外框（效能優化）
+  function dragRedraw(draggedIds) {
+    var img = Canvas.getImage();
+    if (!img) return;
+    var ctx = Canvas.getCtx();
+    var mc = Canvas.getCanvas();
+    var zoom = Canvas.getZoom();
+    ctx.clearRect(0, 0, mc.width, mc.height);
+    ctx.drawImage(img, 0, 0);
+    var lw = Math.max(1, 1.5 / zoom);
+
+    for (var i = 0; i < boxes.length; i++) {
+      var box = boxes[i];
+      var g = box.group ? Groups.getById(box.group) : null;
+      var bc = g ? g.color : '#C0392B';
+      var isDragged = draggedIds && draggedIds.indexOf(box.id) >= 0;
+
+      if (previewMode && isDragged) {
+        // 只對拖曳中的框做 FillEngine 渲染
+        _renderBoxPreview(ctx, mc, box);
+      } else if (previewMode) {
+        // 非拖曳框：暫時用框線 + 半透明底色表示
+        ctx.strokeStyle = bc; ctx.lineWidth = lw; ctx.setLineDash([4/zoom, 3/zoom]);
+        ctx.strokeRect(box.x, box.y, box.w, box.h);
+        ctx.setLineDash([]);
+        ctx.fillStyle = Groups.hexAlpha(bc, 0.09);
+        ctx.fillRect(box.x, box.y, box.w, box.h);
+      } else {
+        ctx.strokeStyle = bc; ctx.lineWidth = lw; ctx.setLineDash([4/zoom, 3/zoom]);
+        ctx.strokeRect(box.x, box.y, box.w, box.h);
+        ctx.setLineDash([]);
+      }
+    }
+    if (typeof Canvas.drawSelOverlays === 'function') Canvas.drawSelOverlays();
+  }
+
   // 拖曳期間輕量渲染：只畫框線，跳過 FillEngine（避免 lag）
   function fastRedraw() {
     var img = Canvas.getImage();
@@ -353,13 +496,16 @@ var App = (function() {
   }
 
   function addBox(box) {
+    saveState();
     boxes.push(box);
     Canvas.setLastSize(box.w, box.h);
     renderPriceList();
     redraw();
   }
 
-  function updateBox(id, changes) {
+  // skipHistory=true 時跳過 saveState（拖曳結束時用，狀態已在 dragStart 時存入）
+  function updateBox(id, changes, skipHistory) {
+    if (!skipHistory) saveState();
     for (var i = 0; i < boxes.length; i++) {
       if (String(boxes[i].id) === String(id)) {
         Object.assign(boxes[i], changes);
@@ -378,6 +524,7 @@ var App = (function() {
   }
 
   function deleteBox(id) {
+    saveState();
     boxes = boxes.filter(function(b) { return String(b.id) !== String(id); });
     renderPriceList();
     redraw();
@@ -386,6 +533,7 @@ var App = (function() {
   function clearAll() {
     if (!boxes.length) return;
     showCD('清除全部', '確定清除所有框選？', '取消', '清除', function() {
+      saveState();
       boxes = [];
       renderPriceList();
       redraw();
@@ -1096,6 +1244,7 @@ var App = (function() {
 
   // ── 套用字樣至全部框 ──
   function applyFontToAll(settings) {
+    saveState();
     var applyRounding = (settings.round5 !== undefined || settings.round10 !== undefined);
     for (var i = 0; i < boxes.length; i++) {
       var b = boxes[i];
@@ -1129,6 +1278,7 @@ var App = (function() {
   function applyMultiAlign(align) {
     var ids = (typeof Canvas.getSelectedIds === 'function') ? Canvas.getSelectedIds() : [];
     if (!ids.length) return;
+    saveState();
 
     var selBoxes = boxes.filter(function(b) { return ids.indexOf(b.id) >= 0; });
     if (!selBoxes.length) return;
@@ -1192,6 +1342,10 @@ var App = (function() {
     isOcrReady: isOcrReady,
     detectPrice: detectPrice,
     enhanceQuality: enhanceQuality,
-    applyMultiAlign: applyMultiAlign
+    applyMultiAlign: applyMultiAlign,
+    saveState: saveState,
+    undo: undo,
+    redo: redo,
+    dragRedraw: dragRedraw
   };
 })();

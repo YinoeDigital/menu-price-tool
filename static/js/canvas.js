@@ -94,6 +94,21 @@ var Canvas = (function() {
           if (typeof App !== 'undefined') App.setSt('');
         }
       }
+      // Undo / Redo
+      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyZ' && !e.shiftKey) {
+        var tag2 = document.activeElement ? document.activeElement.tagName : '';
+        if (tag2 !== 'INPUT' && tag2 !== 'TEXTAREA') {
+          e.preventDefault();
+          if (typeof App !== 'undefined') App.undo();
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.code === 'KeyY' || (e.code === 'KeyZ' && e.shiftKey))) {
+        var tag3 = document.activeElement ? document.activeElement.tagName : '';
+        if (tag3 !== 'INPUT' && tag3 !== 'TEXTAREA') {
+          e.preventDefault();
+          if (typeof App !== 'undefined') App.redo();
+        }
+      }
     });
     window.addEventListener('keyup', function(e) {
       if (e.code === 'Tab') {
@@ -316,6 +331,7 @@ var Canvas = (function() {
       for (var bi = boxes.length - 1; bi >= 0; bi--) {
         var bx = boxes[bi];
         if (p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h) {
+          App.saveState(); // 拖曳開始前存狀態（此時 boxes 尚未 mutate）
           isDragging = true;
           dragBox = bx;
           dragOffX = p.x - bx.x;
@@ -427,7 +443,7 @@ var Canvas = (function() {
         dragBox.x = dragOrigX + deltaX;
         dragBox.y = dragOrigY + deltaY;
         dragMoved = true;
-        App.fastRedraw(); // fastRedraw 內部已呼叫 drawSelOverlays
+        App.dragRedraw(selectedIds.slice()); // 拖曳框顯示填色
         drawGuides(g);
         document.getElementById('coordTxt').textContent = 'x:' + Math.round(dragBox.x) + ' y:' + Math.round(dragBox.y);
         return;
@@ -437,7 +453,7 @@ var Canvas = (function() {
       dragBox.x = newX;
       dragBox.y = newY;
       dragMoved = true;
-      App.fastRedraw();
+      App.dragRedraw([dragBox.id]); // 拖曳框顯示填色
       drawGuides(g);
       document.getElementById('coordTxt').textContent = 'x:' + Math.round(newX) + ' y:' + Math.round(newY);
       return;
@@ -554,7 +570,7 @@ var Canvas = (function() {
       dragBox.x = dragOrigX + deltaX;
       dragBox.y = dragOrigY + deltaY;
       dragMoved = true;
-      App.fastRedraw();
+      App.dragRedraw(selectedIds.slice());
       drawGuides(g);
       return;
     }
@@ -563,7 +579,7 @@ var Canvas = (function() {
     dragBox.x = newX;
     dragBox.y = newY;
     dragMoved = true;
-    App.fastRedraw();
+    App.dragRedraw([dragBox.id]);
     drawGuides(g);
   }
 
@@ -610,7 +626,7 @@ var Canvas = (function() {
       return;
     }
 
-    // 群組拖曳結束
+    // 群組拖曳結束（狀態已在 dragStart 時存入）
     if (isDragging && isDragGroup) {
       isDragging = false;
       isDragGroup = false;
@@ -633,7 +649,8 @@ var Canvas = (function() {
         App.redraw();
         FloatPanel.openEdit(dragBox);
       } else {
-        App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y });
+        // 狀態已在 dragStart 時存入，跳過重複 saveState
+        App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y }, true);
       }
       dragBox = null;
       return;
@@ -714,7 +731,7 @@ var Canvas = (function() {
         App.redraw();
         FloatPanel.openEdit(dragBox);
       } else {
-        App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y });
+        App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y }, true); // skipHistory
       }
       dragBox = null;
       return;
