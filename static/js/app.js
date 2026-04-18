@@ -1067,8 +1067,8 @@ var App = (function() {
     setTimeout(function() { Canvas.fitToWindow(); }, 300);
   }
 
-  // ── AI渲染後文字陰影通道（只在 AI渲染完成 / 匯出時呼叫，不影響一般繪製）──
-  // 疊加在已融合的 canvas 上，用 shadowBlur 模擬印刷墨水擴散感
+  // ── AI渲染後文字增強通道（只在 AI渲染完成 / 匯出時呼叫，不影響一般繪製）──
+  // 三層效果：[A] 雙層繪製墨水擴散  [B] fontSize 比例 shadowBlur  [C] 細描邊筆劃飽滿感
   function _renderTextWithShadow(ctx, box) {
     if (box.isMask) return;
     var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
@@ -1088,36 +1088,91 @@ var App = (function() {
     var _sh = _aiAlignHints[box.id] || {};
     var bAlign = _sh.textAlign || box.textAlign || 'center';
     var vAl    = _sh.verticalAlign || box.verticalAlign || 'middle';
-    var shadowPx = Math.max(1.0, Math.min(box.h, box.w) * 0.018);
 
     if ('letterSpacing' in ctx) ctx.letterSpacing = (box.letterSpacing || 0) + 'px';
     ctx.fillStyle = tc;
     ctx.textAlign = bAlign;
-    ctx.shadowColor = tc;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
-    ctx.shadowBlur = shadowPx;
 
     if (box.orient === 'vertical') {
       var ch = box.h / ns.length;
-      var fs = box.fontSize > 0 ? box.fontSize : Math.min(ch * 0.88, box.w * 0.92);
-      ctx.font = bStyle + Math.round(fs) + "px '" + font + "',serif";
+      // [B] 先算 fontSize，再以字體大小比例決定 shadowBlur（而非框尺寸）
+      var fs = Math.round(box.fontSize > 0 ? box.fontSize : Math.min(ch * 0.88, box.w * 0.92));
+      var shadowPx = Math.max(0.8, Math.min(fs * 0.04, 6));
+      var blurPx   = Math.max(0.5, fs * 0.025);
+
+      ctx.font = bStyle + fs + "px '" + font + "',serif";
+      ctx.shadowColor = tc;
+      ctx.shadowBlur  = shadowPx;
       var charX = bAlign === 'right' ? box.x + box.w - 3 : bAlign === 'left' ? box.x + 3 : box.x + box.w / 2;
+
+      // [A] 第一層：模糊 + 半透明，模擬墨水向外暈染
+      ctx.globalAlpha = 0.45;
+      if ('filter' in ctx) ctx.filter = 'blur(' + blurPx + 'px)';
       for (var ci = 0; ci < ns.length; ci++) {
         ctx.fillText(ns[ci], charX, box.y + ch * (ci + 0.8));
       }
+      if ('filter' in ctx) ctx.filter = 'none';
+      ctx.globalAlpha = 1.0;
+
+      // [A] 第二層：清晰主體
+      for (var ci2 = 0; ci2 < ns.length; ci2++) {
+        ctx.fillText(ns[ci2], charX, box.y + ch * (ci2 + 0.8));
+      }
+
+      // [C] 極細描邊：模擬印刷字體筆劃飽滿感
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = tc;
+      ctx.lineWidth   = Math.max(0.5, fs * 0.025);
+      ctx.lineJoin    = 'round';
+      ctx.lineCap     = 'round';
+      for (var ci3 = 0; ci3 < ns.length; ci3++) {
+        ctx.strokeText(ns[ci3], charX, box.y + ch * (ci3 + 0.8));
+      }
+      ctx.globalAlpha = 1.0;
+
     } else {
-      var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
-      ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
+      // [B] 先算 fontSize，再以字體大小比例決定 shadowBlur
+      var fs2 = Math.round(box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6)));
+      var shadowPx2 = Math.max(0.8, Math.min(fs2 * 0.04, 6));
+      var blurPx2   = Math.max(0.5, fs2 * 0.025);
+
+      ctx.font = bStyle + fs2 + "px '" + font + "',serif";
+      ctx.shadowColor = tc;
+      ctx.shadowBlur  = shadowPx2;
+
       var ty = vAl === 'top' ? box.y + Math.round(fs2 * 0.82) : box.y + box.h / 2;
       ctx.textBaseline = vAl === 'top' ? 'alphabetic' : 'middle';
       var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
+
+      // [A] 第一層：模糊 + 半透明，模擬墨水向外暈染
+      ctx.globalAlpha = 0.45;
+      if ('filter' in ctx) ctx.filter = 'blur(' + blurPx2 + 'px)';
       ctx.fillText(ns, tx, ty);
+      if ('filter' in ctx) ctx.filter = 'none';
+      ctx.globalAlpha = 1.0;
+
+      // [A] 第二層：清晰主體
+      ctx.fillText(ns, tx, ty);
+
+      // [C] 極細描邊：模擬印刷字體筆劃飽滿感
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = tc;
+      ctx.lineWidth   = Math.max(0.5, fs2 * 0.025);
+      ctx.lineJoin    = 'round';
+      ctx.lineCap     = 'round';
+      ctx.strokeText(ns, tx, ty);
+      ctx.restore();
+
       ctx.textBaseline = 'alphabetic';
     }
-    // 清除 shadow 狀態，避免影響後續繪製
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
+
+    // 清除所有狀態，避免影響後續繪製
+    ctx.shadowBlur   = 0;
+    ctx.shadowColor  = 'transparent';
+    ctx.globalAlpha  = 1.0;
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
 

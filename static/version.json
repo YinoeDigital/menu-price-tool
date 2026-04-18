@@ -1,4 +1,4 @@
 {
-  "version": "1.5.23",
-  "note": "AI渲染修正：非破壞性對齊hint、框內採樣墨水色、陰影效果僅AI渲染後生效"
+  "version": "1.5.24",
+  "note": "AI渲染文字增強：雙層墨水擴散(A)、fontSize比例shadowBlur(B)、細描邊飽滿感(C)"
 }
