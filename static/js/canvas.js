@@ -103,6 +103,7 @@ var Canvas = (function() {
       if (document.getElementById('fp').contains(e.target)) return;
       if (e.altKey) return;
       if (tabHeld) return; // Tab 繪框模式穿透
+      if (typeof FillEngine !== 'undefined' && FillEngine.isPatchSelecting()) return; // patch 選取穿透
       e.stopPropagation();
       e.preventDefault();
       if (window.FloatPanel) FloatPanel.nudgeButtons();
@@ -314,13 +315,15 @@ var Canvas = (function() {
       if (Rulers.tryDeleteGuide(p.x, p.y)) { e.preventDefault(); return; }
     }
 
-    if (document.getElementById('fp').classList.contains('open')) return;
-
     // FillEngine patch check
+    var patchSelecting = typeof FillEngine !== 'undefined' && FillEngine.isPatchSelecting();
+
+    if (!patchSelecting && document.getElementById('fp').classList.contains('open')) return;
+
     if (typeof FillEngine !== 'undefined' &&
         FillEngine.getMode() === 'patch' &&
         !FillEngine.getPatchSource() &&
-        !FillEngine.isPatchSelecting()) {
+        !patchSelecting) {
       App.setSt('⚠️ 請先點擊「點此選取來源」設定紋理補丁來源區域');
       var patchCard = document.getElementById('patch-hint');
       if (patchCard) {
@@ -331,8 +334,8 @@ var Canvas = (function() {
       return;
     }
 
-    // 3. Tab 按住 → 繪框模式
-    if (tabHeld) {
+    // 3. Tab 按住 → 繪框模式；patch 選取中也直接進入繪框（不需快捷鍵）
+    if (tabHeld || patchSelecting) {
       startX = p.x; startY = p.y;
       drawing = true;
       curBox = { x: p.x, y: p.y, w: 0, h: 0 };
