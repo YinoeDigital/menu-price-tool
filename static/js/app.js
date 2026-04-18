@@ -8,6 +8,7 @@ var App = (function() {
   var hist = [];
   var confirmCB = null;
   var enhancementApplied = false;
+  var _aiAlignHints = {}; // 非破壞性對齊 hint：{ boxId: { textAlign?, verticalAlign? } }
   var globalDeal = 80;
   var isDealEnabled = false;
   var isCommissionEnabled = true;
@@ -160,6 +161,7 @@ var App = (function() {
       var i = new Image();
       i.onload = function() {
         _origImgCanvas = null; _origImgCtx = null; // 清除舊圖快取
+        _aiAlignHints = {};
         Canvas.setImage(i);
         document.getElementById('emptySt').style.display = 'none';
         document.getElementById('cc').style.display = 'block';
@@ -236,38 +238,23 @@ var App = (function() {
     return _origImgCtx;
   }
 
-  // 在原圖的 box 上下各取 20px 細帶，找出墨水色（亮背景取最暗，暗背景取最亮）
+  // 直接從原圖 box 內部採樣墨水色（取最暗/最亮 15% 像素，與原始數字顏色吻合）
   function _sampleInkColor(box) {
     var origCtx = _getOrigCtx();
     if (!origCtx) return null;
     var imgEl = Canvas.getImage();
     var bx = Math.max(0, Math.round(box.x));
+    var by = Math.max(0, Math.round(box.y));
     var bw = Math.min(Math.round(box.w), imgEl.width - bx);
-    if (bw < 2) return null;
+    var bh = Math.min(Math.round(box.h), imgEl.height - by);
+    if (bw < 4 || bh < 4) return null;
 
-    var stripH = Math.min(20, Math.round(box.h));
     var samples = [];
-
     try {
-      // 上方帶
-      var ay = Math.max(0, Math.round(box.y) - stripH);
-      var ah = Math.min(stripH, Math.round(box.y) - ay);
-      if (ah > 0) {
-        var d1 = origCtx.getImageData(bx, ay, bw, ah).data;
-        for (var i = 0; i < d1.length; i += 4) {
-          samples.push({ r: d1[i], g: d1[i+1], b: d1[i+2],
-            l: 0.299*d1[i] + 0.587*d1[i+1] + 0.114*d1[i+2] });
-        }
-      }
-      // 下方帶
-      var by2 = Math.min(Math.round(box.y + box.h), imgEl.height);
-      var bh2 = Math.min(stripH, imgEl.height - by2);
-      if (bh2 > 0) {
-        var d2 = origCtx.getImageData(bx, by2, bw, bh2).data;
-        for (var j = 0; j < d2.length; j += 4) {
-          samples.push({ r: d2[j], g: d2[j+1], b: d2[j+2],
-            l: 0.299*d2[j] + 0.587*d2[j+1] + 0.114*d2[j+2] });
-        }
+      var data = origCtx.getImageData(bx, by, bw, bh).data;
+      for (var i = 0; i < data.length; i += 4) {
+        samples.push({ r: data[i], g: data[i+1], b: data[i+2],
+          l: 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2] });
       }
     } catch(e) { return null; }
 
@@ -344,7 +331,8 @@ var App = (function() {
     }
     var bls = (box.letterSpacing || 0) + 'px';
     var bStyle = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
-    var bAlign = box.textAlign || 'center';
+    var _rHint = _aiAlignHints[box.id] || {};
+    var bAlign = _rHint.textAlign || box.textAlign || 'center';
     if ('letterSpacing' in ctx) ctx.letterSpacing = bls;
     if (box.orient === 'vertical') {
       var ch = box.h / ns.length;
@@ -361,7 +349,7 @@ var App = (function() {
     } else {
       var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
       ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
-      var vAl = box.verticalAlign || 'middle';
+      var vAl = _rHint.verticalAlign || box.verticalAlign || 'middle';
       var ty  = vAl === 'top' ? box.y + Math.round(fs2 * 0.82) : box.y + box.h / 2;
       ctx.fillStyle = tc; ctx.textBaseline = vAl === 'top' ? 'alphabetic' : 'middle';
       var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
@@ -477,6 +465,7 @@ var App = (function() {
     // Reset enhancement flag when canvas is re-rendered from scratch
     if (enhancementApplied) {
       enhancementApplied = false;
+      _aiAlignHints = {}; // canvas 重繪，AI hint 一併清除
       var eb = document.getElementById('tbEnhance');
       if (eb) eb.classList.remove('active');
     }
@@ -549,7 +538,8 @@ var App = (function() {
         }
         var bls = (box.letterSpacing || 0) + 'px';
         var bStyle = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
-        var bAlign = box.textAlign || 'center';
+        var _rdHint = _aiAlignHints[box.id] || {};
+        var bAlign = _rdHint.textAlign || box.textAlign || 'center';
         if ('letterSpacing' in ctx) ctx.letterSpacing = bls;
         if (box.orient === 'vertical') {
           var ch = box.h / ns.length;
@@ -566,7 +556,7 @@ var App = (function() {
         } else {
           var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
           ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
-          var vAl = box.verticalAlign || 'middle';
+          var vAl = _rdHint.verticalAlign || box.verticalAlign || 'middle';
           var ty  = vAl === 'top' ? box.y + Math.round(fs2 * 0.82) : box.y + box.h / 2;
           ctx.fillStyle = tc; ctx.textBaseline = vAl === 'top' ? 'alphabetic' : 'middle';
           var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
@@ -806,7 +796,8 @@ var App = (function() {
       }
       var bls2 = (box.letterSpacing || 0) + 'px';
       var bStyle2 = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
-      var bAlign2 = box.textAlign || 'center';
+      var _exHint = _aiAlignHints[box.id] || {};
+      var bAlign2 = _exHint.textAlign || box.textAlign || 'center';
       if ('letterSpacing' in oc) oc.letterSpacing = bls2;
       if (box.orient === 'vertical') {
         var ch = box.h / ns.length;
@@ -823,7 +814,7 @@ var App = (function() {
       } else {
         var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
         oc.font = bStyle2 + Math.round(fs2) + "px '" + font + "',serif";
-        var vAl2 = box.verticalAlign || 'middle';
+        var vAl2 = _exHint.verticalAlign || box.verticalAlign || 'middle';
         var ty2  = vAl2 === 'top' ? box.y + Math.round(fs2 * 0.82) : box.y + box.h / 2;
         oc.fillStyle = tc; oc.textBaseline = vAl2 === 'top' ? 'alphabetic' : 'middle';
         var tx2 = bAlign2 === 'left' ? box.x + 4 : bAlign2 === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
@@ -845,7 +836,7 @@ var App = (function() {
       }
       if ('letterSpacing' in oc) oc.letterSpacing = '0px';
     }
-    // 如已套用 AI渲染，匯出時同樣處理邊緣融合
+    // 如已套用 AI渲染，匯出時同樣處理邊緣融合 + 文字陰影
     if (enhancementApplied) {
       var origC3 = document.createElement('canvas');
       origC3.width = img.width; origC3.height = img.height;
@@ -853,6 +844,10 @@ var App = (function() {
       for (var ei = 0; ei < boxes.length; ei++) {
         blendBoxEdge(oc, off, origC3, boxes[ei]);
         addGrainToBox(oc, boxes[ei], origC3);
+      }
+      // 疊加文字陰影效果（與顯示端一致）
+      for (var _ei2 = 0; _ei2 < boxes.length; _ei2++) {
+        _renderTextWithShadow(oc, boxes[_ei2]);
       }
     }
     var fmt = mc.dataset.fmt || 'png';
@@ -909,6 +904,7 @@ var App = (function() {
       var i = new Image();
       i.onload = function() {
         _origImgCanvas = null; _origImgCtx = null; // 清除舊圖快取
+        _aiAlignHints = {};
         Canvas.setImage(i);
         var mc = Canvas.getCanvas();
         mc.dataset.fmt = e.fmt || 'png';
@@ -1071,6 +1067,60 @@ var App = (function() {
     setTimeout(function() { Canvas.fitToWindow(); }, 300);
   }
 
+  // ── AI渲染後文字陰影通道（只在 AI渲染完成 / 匯出時呼叫，不影響一般繪製）──
+  // 疊加在已融合的 canvas 上，用 shadowBlur 模擬印刷墨水擴散感
+  function _renderTextWithShadow(ctx, box) {
+    if (box.isMask) return;
+    var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
+    var tc = box.fontColor || _sampleInkColor(box) || '#3D1A10';
+    var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
+    var ns;
+    switch (_affix) {
+      case 'yuan':      ns = String(nv) + '元'; break;
+      case 'yuan_sp':   ns = String(nv) + ' 元'; break;
+      case 'dollar':    ns = '$' + String(nv); break;
+      case 'dollar_sp': ns = '$ ' + String(nv); break;
+      default:          ns = String(nv);
+    }
+    var globalFont2 = document.getElementById('fontSel').value;
+    var font = box.fontFamily || globalFont2;
+    var bStyle = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
+    var _sh = _aiAlignHints[box.id] || {};
+    var bAlign = _sh.textAlign || box.textAlign || 'center';
+    var vAl    = _sh.verticalAlign || box.verticalAlign || 'middle';
+    var shadowPx = Math.max(1.0, Math.min(box.h, box.w) * 0.018);
+
+    if ('letterSpacing' in ctx) ctx.letterSpacing = (box.letterSpacing || 0) + 'px';
+    ctx.fillStyle = tc;
+    ctx.textAlign = bAlign;
+    ctx.shadowColor = tc;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.shadowBlur = shadowPx;
+
+    if (box.orient === 'vertical') {
+      var ch = box.h / ns.length;
+      var fs = box.fontSize > 0 ? box.fontSize : Math.min(ch * 0.88, box.w * 0.92);
+      ctx.font = bStyle + Math.round(fs) + "px '" + font + "',serif";
+      var charX = bAlign === 'right' ? box.x + box.w - 3 : bAlign === 'left' ? box.x + 3 : box.x + box.w / 2;
+      for (var ci = 0; ci < ns.length; ci++) {
+        ctx.fillText(ns[ci], charX, box.y + ch * (ci + 0.8));
+      }
+    } else {
+      var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
+      ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
+      var ty = vAl === 'top' ? box.y + Math.round(fs2 * 0.82) : box.y + box.h / 2;
+      ctx.textBaseline = vAl === 'top' ? 'alphabetic' : 'middle';
+      var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
+      ctx.fillText(ns, tx, ty);
+      ctx.textBaseline = 'alphabetic';
+    }
+    // 清除 shadow 狀態，避免影響後續繪製
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  }
+
   // ── AI渲染：自動對齊偵測 + 掃描線動畫 + 邊緣融合 ──
   function enhanceQuality() {
     var img = Canvas.getImage();
@@ -1148,6 +1198,10 @@ var App = (function() {
           requestAnimationFrame(animFrame);
         } else {
           cw.removeChild(ov);
+          // 疊加文字陰影（AI渲染最終通道，畫在已融合的 canvas 上）
+          for (var _ti = 0; _ti < boxes.length; _ti++) {
+            _renderTextWithShadow(ctx, boxes[_ti]);
+          }
           enhancementApplied = true;
           if (btn) {
             btn.disabled = false;
@@ -1161,8 +1215,9 @@ var App = (function() {
     }, 60);
   }
 
-  // ── 自動對齊偵測：垂直欄→靠右，水平列→靠上 ──
+  // ── 自動對齊偵測：垂直欄→靠右，水平列→靠上（只寫 hint，不修改 box 資料）──
   function detectColumnAlignment() {
+    _aiAlignHints = {}; // 清除舊 hints
     if (boxes.length < 2) return;
     var avgW = boxes.reduce(function(s,b){return s+b.w;},0)/boxes.length;
     var avgH = boxes.reduce(function(s,b){return s+b.h;},0)/boxes.length;
@@ -1187,10 +1242,10 @@ var App = (function() {
       if (grp.length >= MIN_GRP) grp.forEach(function(b2) { inRow[b2.id] = true; });
     });
 
-    // 套用對齊
+    // 寫入臨時 hints（不修改 box 資料，不影響現有框選/拖曳邏輯）
     boxes.forEach(function(box) {
-      if (inCol[box.id])      { box.textAlign = 'right'; }
-      else if (inRow[box.id]) { box.verticalAlign = 'top'; }
+      if (inCol[box.id])      { _aiAlignHints[box.id] = { textAlign: 'right' }; }
+      else if (inRow[box.id]) { _aiAlignHints[box.id] = { verticalAlign: 'top' }; }
     });
   }
 
