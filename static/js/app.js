@@ -1125,17 +1125,31 @@ var App = (function() {
   function getBoxes() { return boxes; }
   function isPreview() { return previewMode; }
 
-  // ── 多選對齊 ──
+  // ── 多選對齊（矩形位置對齊，非文字對齊）──
   function applyMultiAlign(align) {
     var ids = (typeof Canvas.getSelectedIds === 'function') ? Canvas.getSelectedIds() : [];
     if (!ids.length) return;
-    for (var i = 0; i < boxes.length; i++) {
-      if (ids.indexOf(boxes[i].id) >= 0) {
-        boxes[i].textAlign = align;
-      }
+
+    // 計算所有選取框的邊界
+    var selBoxes = boxes.filter(function(b) { return ids.indexOf(b.id) >= 0; });
+    if (!selBoxes.length) return;
+    var minX = Infinity, maxRight = -Infinity;
+    for (var i = 0; i < selBoxes.length; i++) {
+      minX    = Math.min(minX,    selBoxes[i].x);
+      maxRight = Math.max(maxRight, selBoxes[i].x + selBoxes[i].w);
     }
+    var centerX = (minX + maxRight) / 2;
+
+    // 移動每個選取框的 x 位置
+    for (var j = 0; j < boxes.length; j++) {
+      if (ids.indexOf(boxes[j].id) < 0) continue;
+      if (align === 'left')   boxes[j].x = minX;
+      if (align === 'center') boxes[j].x = Math.round(centerX - boxes[j].w / 2);
+      if (align === 'right')  boxes[j].x = maxRight - boxes[j].w;
+    }
+
     redraw();
-    setSt('✅ 已將「' + (align === 'left' ? '靠左' : align === 'right' ? '靠右' : '置中') + '」對齊套用至 ' + ids.length + ' 個價格框');
+    setSt('✅ 已將 ' + ids.length + ' 個價格框「' + (align === 'left' ? '靠左' : align === 'right' ? '靠右' : '置中') + '」對齊');
   }
 
   return {
