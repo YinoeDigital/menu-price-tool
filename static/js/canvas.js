@@ -25,11 +25,14 @@ var Canvas = (function() {
   // ── 鍵盤狀態追蹤 ──
   var spaceHeld = false;
 
+  // ── Tab 繪框模式 ──
+  var tabHeld = false;
+
   // ── 多選模式 ──
-  var capsMode = false;
   var isMultiSel = false;
   var selStartC = null, selEndC = null;
   var selectedIds = [];
+  var _selRafId = null; // rAF throttle handle
 
   function init(canvasId, containerId, onDraw) {
     mc = document.getElementById(canvasId);
@@ -62,43 +65,44 @@ var Canvas = (function() {
       if (e.code === 'Space') {
         spaceHeld = false;
         // 若拖曳中途放開空白鍵，重設游標
-        if (!isDragging && mc) mc.style.cursor = 'crosshair';
+        if (!isDragging && mc) mc.style.cursor = tabHeld ? 'crosshair' : 'default';
       }
     });
 
-    // CapsLock / 中英 → 多選模式切換（toggle）
+    // Tab 鍵 → 繪框模式（排除在輸入框內）
     window.addEventListener('keydown', function(e) {
-      if (e.code === 'CapsLock') {
-        capsMode = !capsMode;
-        if (mc) mc.style.cursor = capsMode ? 'cell' : 'crosshair';
-        if (!capsMode) {
-          clearMultiSel();
-          if (typeof App !== 'undefined') App.setSt('');
-        } else {
-          if (typeof App !== 'undefined') App.setSt('🟢 多選模式（再按 CapsLock / 中英 退出，或按 Esc）');
+      if (e.code === 'Tab') {
+        var tag = document.activeElement ? document.activeElement.tagName : '';
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+          tabHeld = true;
+          if (mc) mc.style.cursor = 'crosshair';
+          e.preventDefault();
         }
-        e.preventDefault();
       }
       if (e.code === 'Escape') {
-        // 優先關閉 FloatPanel（無論焦點在哪）
         var fp = document.getElementById('fp');
         if (fp && fp.classList.contains('open')) {
           if (typeof FloatPanel !== 'undefined') FloatPanel.reqClose();
           return;
         }
-        // 退出多選模式
-        if (capsMode || selectedIds.length) {
-          capsMode = false;
-          if (mc) mc.style.cursor = 'crosshair';
+        if (selectedIds.length) {
           clearMultiSel();
           if (typeof App !== 'undefined') App.setSt('');
         }
       }
     });
+    window.addEventListener('keyup', function(e) {
+      if (e.code === 'Tab') {
+        tabHeld = false;
+        if (!isMultiSel && mc) mc.style.cursor = 'default';
+      }
+    });
+
     cw.addEventListener('mousedown', function(e) {
       if (!document.getElementById('fp').classList.contains('open')) return;
       if (document.getElementById('fp').contains(e.target)) return;
-      if (e.altKey) return; // Alt+拖曳移動框需要穿透到 canvas
+      if (e.altKey) return;
+      if (tabHeld) return; // Tab 繪框模式穿透
       e.stopPropagation();
       e.preventDefault();
       if (window.FloatPanel) FloatPanel.nudgeButtons();
@@ -217,7 +221,7 @@ var Canvas = (function() {
     ctx.restore();
   }
 
-  // ── 多選模式輔助 ──
+  // ── 多選輔助 ──
   function canvasToScreen(cx, cy) {
     var ccRect = cc.getBoundingClientRect();
     var cwRect = cw.getBoundingClientRect();
@@ -227,29 +231,10 @@ var Canvas = (function() {
     };
   }
 
-  function drawMultiSelRect() {
-    if (!selStartC || !selEndC) return;
-    var x = Math.min(selStartC.x, selEndC.x);
-    var y = Math.min(selStartC.y, selEndC.y);
-    var w = Math.abs(selEndC.x - selStartC.x);
-    var h = Math.abs(selEndC.y - selStartC.y);
-    ctx.save();
-    ctx.strokeStyle = '#27ae60';
-    ctx.lineWidth = 2 / zoomLevel;
-    ctx.setLineDash([6 / zoomLevel, 3 / zoomLevel]);
-    ctx.globalAlpha = 0.9;
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = 'rgba(39,174,96,0.08)';
-    ctx.fillRect(x, y, w, h);
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  }
-
   function showAlignBar(selX1, selY1, selX2, selY2) {
     var bar = document.getElementById('alignBar');
     if (!bar) return;
-    var tr = canvasToScreen(selX2, selY1); // top-right corner of selection
+    var tr = canvasToScreen(selX2, selY1);
     bar.style.left = (tr.x + 6) + 'px';
     bar.style.top  = tr.y + 'px';
     bar.style.display = 'flex';
@@ -262,10 +247,12 @@ var Canvas = (function() {
 
   function clearMultiSel() {
     isMultiSel = false;
-    selStartC  = null;
-    selEndC    = null;
+    selStartC = null;
+    selEndC = null;
     selectedIds = [];
+    if (_selRafId) { cancelAnimationFrame(_selRafId); _selRafId = null; }
     hideAlignBar();
+    if (typeof Rulers !== 'undefined') Rulers.clearSelRect();
     if (img) App.redraw();
   }
 
@@ -290,19 +277,7 @@ var Canvas = (function() {
   function onMouseDown(e) {
     if (!img) return;
 
-    // CapsLock 多選模式 → 開始框選（Shift 鍵例外：優先執行「複製上次框大小」）
-    if (capsMode && !e.shiftKey) {
-      var p0 = toCanvas(e.clientX, e.clientY);
-      isMultiSel = true;
-      selStartC = { x: p0.x, y: p0.y };
-      selEndC   = { x: p0.x, y: p0.y };
-      selectedIds = [];
-      hideAlignBar();
-      e.preventDefault();
-      return;
-    }
-
-    // Space / 中鍵 → 平移（不受 float panel 影響）
+    // 1. Space / 中鍵 → 平移
     if (spaceHeld || e.button === 1) {
       isPanning = true;
       panSX = e.clientX; panSY = e.clientY;
@@ -314,7 +289,7 @@ var Canvas = (function() {
 
     var p = toCanvas(e.clientX, e.clientY);
 
-    // Alt / Option + 點擊既有矩形 → 拖曳移動模式
+    // 2. Alt → 拖曳移動框
     if (e.altKey) {
       var boxes = App.getBoxes();
       for (var bi = boxes.length - 1; bi >= 0; bi--) {
@@ -334,14 +309,14 @@ var Canvas = (function() {
       }
     }
 
-    // Guide delete: click within threshold of a guide line
+    // Guide delete
     if (typeof Rulers !== 'undefined' && !spaceHeld && !e.altKey) {
       if (Rulers.tryDeleteGuide(p.x, p.y)) { e.preventDefault(); return; }
     }
 
     if (document.getElementById('fp').classList.contains('open')) return;
 
-    // 若紋理補丁模式但尚未設定來源 → 抖動提示，阻擋繪製
+    // FillEngine patch check
     if (typeof FillEngine !== 'undefined' &&
         FillEngine.getMode() === 'patch' &&
         !FillEngine.getPatchSource() &&
@@ -356,10 +331,21 @@ var Canvas = (function() {
       return;
     }
 
-    // 普通點擊：小移動 = 點擊編輯（mouseup 觸發），大移動 = 繪製新框
-    startX = p.x; startY = p.y;
-    drawing = true;
-    curBox = { x: p.x, y: p.y, w: 0, h: 0 };
+    // 3. Tab 按住 → 繪框模式
+    if (tabHeld) {
+      startX = p.x; startY = p.y;
+      drawing = true;
+      curBox = { x: p.x, y: p.y, w: 0, h: 0 };
+      return;
+    }
+
+    // 4. 預設 → 多選框選（mousedown 記錄起點）
+    isMultiSel = true;
+    selStartC = { x: p.x, y: p.y };
+    selEndC   = { x: p.x, y: p.y };
+    selectedIds = [];
+    hideAlignBar();
+    Rulers.clearSelRect();
   }
 
   function onMouseMove(e) {
@@ -367,17 +353,7 @@ var Canvas = (function() {
     var p = toCanvas(e.clientX, e.clientY);
     var shiftHeld = e.shiftKey;
 
-    // CapsLock 多選模式 → 更新框選範圍（Shift 鍵時讓出給複製框大小）
-    if (capsMode && isMultiSel && !e.shiftKey) {
-      selEndC = { x: p.x, y: p.y };
-      App.fastRedraw();
-      drawSelOverlays();
-      drawMultiSelRect();
-      return;
-    }
-
-    // Space 游標（平移提示）
-    if (spaceHeld && !isPanning && !isDragging && !drawing) {
+    if (spaceHeld && !isPanning && !isDragging && !drawing && !isMultiSel) {
       mc.style.cursor = 'grab';
     }
 
@@ -394,23 +370,32 @@ var Canvas = (function() {
     if (isDragging && dragBox) {
       var newX = p.x - dragOffX;
       var newY = p.y - dragOffY;
-
-      // 計算對齊
       var g = computeGuides(newX, newY, dragBox.w, dragBox.h);
       if (g.snapX !== null) newX = g.snapX;
       if (g.snapY !== null) newY = g.snapY;
-
       dragBox.x = newX;
       dragBox.y = newY;
       dragMoved = true;
-
       App.fastRedraw();
       drawGuides(g);
-      document.getElementById('coordTxt').textContent =
-        'x:' + Math.round(newX) + ' y:' + Math.round(newY);
+      document.getElementById('coordTxt').textContent = 'x:' + Math.round(newX) + ' y:' + Math.round(newY);
       return;
     }
 
+    // 多選框選中（預設拖曳）
+    if (isMultiSel && !tabHeld && !e.altKey) {
+      selEndC = { x: p.x, y: p.y };
+      // rAF 節流：只更新 guide-canvas，主 canvas 不動
+      if (!_selRafId) {
+        _selRafId = requestAnimationFrame(function() {
+          _selRafId = null;
+          if (typeof Rulers !== 'undefined') Rulers.drawSelRect(selStartC, selEndC, canvasToScreen);
+        });
+      }
+      return;
+    }
+
+    // Tab 繪框中
     if (!drawing) {
       if (spaceHeld) { mc.style.cursor = 'grab'; return; }
       var overBox = false;
@@ -422,12 +407,13 @@ var Canvas = (function() {
         }
       }
       if (e.altKey) {
-        mc.style.cursor = overBox ? 'move' : 'crosshair';
+        mc.style.cursor = overBox ? 'move' : (tabHeld ? 'crosshair' : 'default');
+      } else if (tabHeld) {
+        mc.style.cursor = 'crosshair';
       } else {
-        mc.style.cursor = overBox ? 'pointer' : 'crosshair';
+        mc.style.cursor = overBox ? 'pointer' : 'default';
       }
-
-      if (shiftHeld && lastW > 0) {
+      if (shiftHeld && tabHeld && lastW > 0) {
         document.getElementById('coordTxt').textContent = '⇧ Shift：複製上次尺寸 ' + lastW + '×' + lastH + ' px';
       } else {
         document.getElementById('coordTxt').textContent = 'x:' + Math.round(p.x) + ' y:' + Math.round(p.y);
@@ -437,14 +423,7 @@ var Canvas = (function() {
 
     document.getElementById('coordTxt').textContent = 'x:' + Math.round(p.x) + ' y:' + Math.round(p.y);
 
-    if (isPanning) {
-      panX = panOX + (e.clientX - panSX);
-      panY = panOY + (e.clientY - panSY);
-      applyTransform();
-      return;
-    }
-
-    if (shiftHeld && lastW > 0 && lastH > 0) {
+    if (shiftHeld && tabHeld && lastW > 0 && lastH > 0) {
       curBox.w = lastW;
       curBox.h = lastH;
     } else {
@@ -455,11 +434,10 @@ var Canvas = (function() {
     if (curBox.w !== 0 && curBox.h !== 0) {
       var isPatchSel = typeof FillEngine !== 'undefined' && FillEngine.isPatchSelecting();
       if (isPatchSel) {
-        // 黑色框：來源選取模式（與紅色價格框做出區別）
         ctx.strokeStyle = '#1a1a1a';
         ctx.lineWidth = 2 / zoomLevel;
         ctx.setLineDash([6 / zoomLevel, 4 / zoomLevel]);
-      } else if (shiftHeld && lastW > 0) {
+      } else if (shiftHeld && tabHeld && lastW > 0) {
         ctx.strokeStyle = '#2980B9';
         ctx.lineWidth = 2 / zoomLevel;
         ctx.setLineDash([5 / zoomLevel, 3 / zoomLevel]);
@@ -475,20 +453,22 @@ var Canvas = (function() {
 
   // window 層級的 mousemove：讓拖曳超出 canvas 也能追蹤
   function onWindowMouseMove(e) {
-    // 處理 shift pan 超出 canvas
     if (isPanning && !isDragging) {
       panX = panOX + (e.clientX - panSX);
       panY = panOY + (e.clientY - panSY);
       applyTransform();
       return;
     }
-    // CapsLock 多選模式（超出 canvas 也能追蹤，Shift 時讓出）
-    if (capsMode && isMultiSel && img && !(e.shiftKey)) {
+    // 多選框選超出 canvas
+    if (isMultiSel && !tabHeld && !e.altKey && img) {
       var pc = toCanvas(e.clientX, e.clientY);
       selEndC = { x: pc.x, y: pc.y };
-      App.fastRedraw();
-      drawSelOverlays();
-      drawMultiSelRect();
+      if (!_selRafId) {
+        _selRafId = requestAnimationFrame(function() {
+          _selRafId = null;
+          if (typeof Rulers !== 'undefined') Rulers.drawSelRect(selStartC, selEndC, canvasToScreen);
+        });
+      }
       return;
     }
     if (!isDragging || !dragBox || !img) return;
@@ -506,38 +486,39 @@ var Canvas = (function() {
   }
 
   function onMouseUp(e) {
-    if (isPanning) { isPanning = false; mc.style.cursor = spaceHeld ? 'grab' : 'crosshair'; return; }
+    if (isPanning) { isPanning = false; mc.style.cursor = spaceHeld ? 'grab' : (tabHeld ? 'crosshair' : 'default'); return; }
 
-    // CapsLock 多選結束 → 計算選中框
-    if (capsMode && isMultiSel) {
+    // 多選結束
+    if (isMultiSel && !tabHeld) {
       isMultiSel = false;
+      if (_selRafId) { cancelAnimationFrame(_selRafId); _selRafId = null; }
+      if (typeof Rulers !== 'undefined') Rulers.clearSelRect();
       if (selStartC && selEndC) {
         var sx = Math.min(selStartC.x, selEndC.x);
         var sy = Math.min(selStartC.y, selEndC.y);
         var sw = Math.abs(selEndC.x - selStartC.x);
         var sh = Math.abs(selEndC.y - selStartC.y);
         if (sw >= 4 && sh >= 4) {
-          // 拖曳夠大 → 框選多選
+          // 框選多選
           var allBoxes = App.getBoxes();
           selectedIds = [];
           for (var si = 0; si < allBoxes.length; si++) {
             var sb = allBoxes[si];
-            if (sb.x < sx + sw && sb.x + sb.w > sx &&
-                sb.y < sy + sh && sb.y + sb.h > sy) {
+            if (sb.x < sx + sw && sb.x + sb.w > sx && sb.y < sy + sh && sb.y + sb.h > sy) {
               selectedIds.push(sb.id);
             }
           }
           App.fastRedraw();
           drawSelOverlays();
           if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
+          else App.redraw();
         } else {
-          // 小移動（點擊）→ 嘗試開啟編輯面板，行為同一般點擊
+          // 小移動 = 點擊 → 嘗試開啟編輯
           App.redraw();
           var clickBoxes = App.getBoxes();
-          var cx = selStartC ? selStartC.x : sx;
-          var cy = selStartC ? selStartC.y : sy;
-          for (var ci2 = clickBoxes.length - 1; ci2 >= 0; ci2--) {
-            var cb = clickBoxes[ci2];
+          var cx = selStartC.x, cy = selStartC.y;
+          for (var ci = clickBoxes.length - 1; ci >= 0; ci--) {
+            var cb = clickBoxes[ci];
             if (cx >= cb.x && cx <= cb.x + cb.w && cy >= cb.y && cy <= cb.y + cb.h) {
               FloatPanel.openEdit(cb);
               return;
@@ -551,15 +532,13 @@ var Canvas = (function() {
     // 拖曳結束
     if (isDragging) {
       isDragging = false;
-      mc.style.cursor = 'grab';
+      mc.style.cursor = tabHeld ? 'crosshair' : 'default';
       if (!dragMoved) {
-        // 沒有移動 → 視為點擊，還原位置並開啟編輯
         dragBox.x = dragOrigX;
         dragBox.y = dragOrigY;
         App.redraw();
         FloatPanel.openEdit(dragBox);
       } else {
-        // 有移動 → 更新位置
         App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y });
       }
       dragBox = null;
@@ -576,20 +555,9 @@ var Canvas = (function() {
 
     if (w < 6 || h < 6) {
       App.redraw();
-      // 小移動 = 點擊，嘗試開啟編輯
-      var p2 = toCanvas(e.clientX, e.clientY);
-      var boxes2 = App.getBoxes();
-      for (var bi2 = boxes2.length - 1; bi2 >= 0; bi2--) {
-        var bx2 = boxes2[bi2];
-        if (p2.x >= bx2.x && p2.x <= bx2.x + bx2.w && p2.y >= bx2.y && p2.y <= bx2.y + bx2.h) {
-          FloatPanel.openEdit(bx2);
-          return;
-        }
-      }
       return;
     }
 
-    // 補丁模式
     if (typeof FillEngine !== 'undefined' && FillEngine.getMode() === 'patch' && FillEngine.isPatchSelecting()) {
       FillEngine.setPatchSource({ x: x, y: y, w: w, h: h });
       App.redraw();
@@ -600,43 +568,33 @@ var Canvas = (function() {
   }
 
   function onWindowMouseUp(e) {
-    if (isPanning && !isDragging) { isPanning = false; mc.style.cursor = spaceHeld ? 'grab' : 'crosshair'; return; }
+    if (isPanning && !isDragging) { isPanning = false; mc.style.cursor = spaceHeld ? 'grab' : (tabHeld ? 'crosshair' : 'default'); return; }
 
-    // CapsLock 多選（滑鼠在 canvas 外釋放）
-    if (capsMode && isMultiSel) {
+    // 多選在 canvas 外釋放
+    if (isMultiSel && !tabHeld) {
       isMultiSel = false;
+      if (_selRafId) { cancelAnimationFrame(_selRafId); _selRafId = null; }
+      if (typeof Rulers !== 'undefined') Rulers.clearSelRect();
       if (selStartC && selEndC) {
         var sx = Math.min(selStartC.x, selEndC.x);
         var sy = Math.min(selStartC.y, selEndC.y);
         var sw = Math.abs(selEndC.x - selStartC.x);
         var sh = Math.abs(selEndC.y - selStartC.y);
         if (sw >= 4 && sh >= 4) {
-          // 拖曳夠大 → 框選多選
           var allBoxes = App.getBoxes();
           selectedIds = [];
           for (var si = 0; si < allBoxes.length; si++) {
             var sb = allBoxes[si];
-            if (sb.x < sx + sw && sb.x + sb.w > sx &&
-                sb.y < sy + sh && sb.y + sb.h > sy) {
+            if (sb.x < sx + sw && sb.x + sb.w > sx && sb.y < sy + sh && sb.y + sb.h > sy) {
               selectedIds.push(sb.id);
             }
           }
           App.fastRedraw();
           drawSelOverlays();
           if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
+          else App.redraw();
         } else {
-          // 小移動（點擊）→ 嘗試開啟編輯面板
           App.redraw();
-          var clickBoxes2 = App.getBoxes();
-          var cx2 = selStartC ? selStartC.x : sx;
-          var cy2 = selStartC ? selStartC.y : sy;
-          for (var ci3 = clickBoxes2.length - 1; ci3 >= 0; ci3--) {
-            var cb2 = clickBoxes2[ci3];
-            if (cx2 >= cb2.x && cx2 <= cb2.x + cb2.w && cy2 >= cb2.y && cy2 <= cb2.y + cb2.h) {
-              FloatPanel.openEdit(cb2);
-              return;
-            }
-          }
         }
       }
       return;
@@ -644,7 +602,7 @@ var Canvas = (function() {
 
     if (isDragging) {
       isDragging = false;
-      mc.style.cursor = 'grab';
+      mc.style.cursor = tabHeld ? 'crosshair' : 'default';
       if (!dragMoved) {
         dragBox.x = dragOrigX;
         dragBox.y = dragOrigY;
@@ -656,8 +614,7 @@ var Canvas = (function() {
       dragBox = null;
       return;
     }
-    // 滑鼠在 canvas 外釋放時，同樣要結束繪製流程
-    // 否則 drawing / patchSelecting 狀態會卡住，導致下次拖拉行為異常
+
     if (drawing && img && curBox) {
       drawing = false;
       var w = Math.abs(curBox.w);
@@ -747,7 +704,6 @@ var Canvas = (function() {
   function getCanvas() { return mc; }
   function getImage() { return img; }
   function getZoom() { return zoomLevel; }
-  function getPendingBox() { return curBox; }
 
   return {
     init: init,
@@ -763,7 +719,6 @@ var Canvas = (function() {
     getLastSize: getLastSize,
     drawSelOverlays: drawSelOverlays,
     getSelectedIds: function() { return selectedIds.slice(); },
-    clearMultiSel: clearMultiSel,
-    isCapsMode: function() { return capsMode; }
+    clearMultiSel: clearMultiSel
   };
 })();

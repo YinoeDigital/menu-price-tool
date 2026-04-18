@@ -14,6 +14,9 @@ var Rulers = (function() {
   var dragging   = null; // { type:'h'|'v', pos:null }
   var hoverBadge = null; // { type:'h'|'v', idx:N } 目前 hover 的 badge
 
+  // ── 多選框選 rect（繪於 guide-canvas，螢幕座標）──
+  var _selRect = null; // { startC, endC, fn } in canvas coords
+
   // ── 初始化 ──────────────────────────────────────────────────────
   function init() {
     rulerH      = document.getElementById('rulerH');
@@ -225,6 +228,39 @@ var Rulers = (function() {
         drawBadge(guideCtx, bsx - BADGE_W / 2, BADGE_EDGE, isHovV);
       }
     }
+
+    // 多選選取框（螢幕座標疊加在 guide-canvas）
+    if (_selRect && _selRect.startC && _selRect.endC && _selRect.fn) {
+      var tl = _selRect.fn(_selRect.startC.x, _selRect.startC.y);
+      var br = _selRect.fn(_selRect.endC.x, _selRect.endC.y);
+      var rx = Math.min(tl.x, br.x);
+      var ry = Math.min(tl.y, br.y);
+      var rw = Math.abs(br.x - tl.x);
+      var rh = Math.abs(br.y - tl.y);
+      var gCtx = guideCanvas.getContext('2d');
+      gCtx.save();
+      gCtx.strokeStyle = '#27ae60';
+      gCtx.lineWidth = 2;
+      gCtx.setLineDash([6, 3]);
+      gCtx.globalAlpha = 0.9;
+      gCtx.strokeRect(rx, ry, rw, rh);
+      gCtx.fillStyle = 'rgba(39,174,96,0.07)';
+      gCtx.fillRect(rx, ry, rw, rh);
+      gCtx.setLineDash([]);
+      gCtx.globalAlpha = 1;
+      gCtx.restore();
+    }
+  }
+
+  // ── 多選框選 rect 公開方法 ──
+  function drawSelRect(startC, endC, canvasToScreenFn) {
+    _selRect = { startC: startC, endC: endC, fn: canvasToScreenFn };
+    redraw(); // triggers guide-canvas redraw
+  }
+
+  function clearSelRect() {
+    _selRect = null;
+    redraw();
   }
 
   // ── 圓角矩形白底 badge ─────────────────────────────────────────
@@ -365,5 +401,5 @@ var Rulers = (function() {
 
   function getGuides() { return { h: guides.h.slice(), v: guides.v.slice() }; }
 
-  return { init: init, redraw: redraw, toggle: toggle, clearAll: clearAll, drawGuides: drawGuides, tryDeleteGuide: tryDeleteGuide, getGuides: getGuides };
+  return { init: init, redraw: redraw, toggle: toggle, clearAll: clearAll, drawGuides: drawGuides, tryDeleteGuide: tryDeleteGuide, getGuides: getGuides, drawSelRect: drawSelRect, clearSelRect: clearSelRect };
 })();

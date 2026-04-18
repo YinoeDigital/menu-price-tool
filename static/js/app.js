@@ -1130,17 +1130,15 @@ var App = (function() {
     var ids = (typeof Canvas.getSelectedIds === 'function') ? Canvas.getSelectedIds() : [];
     if (!ids.length) return;
 
-    // 計算所有選取框的邊界
     var selBoxes = boxes.filter(function(b) { return ids.indexOf(b.id) >= 0; });
     if (!selBoxes.length) return;
     var minX = Infinity, maxRight = -Infinity;
     for (var i = 0; i < selBoxes.length; i++) {
-      minX    = Math.min(minX,    selBoxes[i].x);
+      minX     = Math.min(minX,     selBoxes[i].x);
       maxRight = Math.max(maxRight, selBoxes[i].x + selBoxes[i].w);
     }
     var centerX = (minX + maxRight) / 2;
 
-    // 移動每個選取框的 x 位置
     for (var j = 0; j < boxes.length; j++) {
       if (ids.indexOf(boxes[j].id) < 0) continue;
       if (align === 'left')   boxes[j].x = minX;
@@ -1148,8 +1146,12 @@ var App = (function() {
       if (align === 'right')  boxes[j].x = maxRight - boxes[j].w;
     }
 
-    redraw();
-    setSt('✅ 已將 ' + ids.length + ' 個價格框「' + (align === 'left' ? '靠左' : align === 'right' ? '靠右' : '置中') + '」對齊');
+    var label = align === 'left' ? '靠左' : align === 'right' ? '靠右' : '置中';
+    setSt('✅ 已將 ' + ids.length + ' 個價格框「' + label + '」對齊');
+
+    // 對齊後清除選取，回到一般模式
+    if (typeof Canvas.clearMultiSel === 'function') Canvas.clearMultiSel();
+    // clearMultiSel calls App.redraw() internally, so no extra redraw needed
   }
 
   return {
