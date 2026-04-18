@@ -356,6 +356,9 @@ var Canvas = (function() {
             isDragGroup = false;
             dragGroupOrigins = [];
           }
+          // Pre-bake 背景（排除拖曳框）供 dragRedraw 使用
+          var _excludeIds = isDragGroup ? selectedIds.slice() : [bx.id];
+          App.prepareDragBackground(_excludeIds);
           mc.style.cursor = 'grabbing';
           e.preventDefault();
           return;
@@ -663,6 +666,7 @@ var Canvas = (function() {
     // 群組拖曳結束（狀態已在 dragStart 時存入）
     if (isDragging && isDragGroup) {
       if (_dragRafId) { cancelAnimationFrame(_dragRafId); _dragRafId = null; }
+      App.clearDragBackground();
       isDragging = false;
       isDragGroup = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
@@ -677,6 +681,7 @@ var Canvas = (function() {
     // 單一框拖曳結束
     if (isDragging) {
       if (_dragRafId) { cancelAnimationFrame(_dragRafId); _dragRafId = null; }
+      App.clearDragBackground();
       isDragging = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
       if (!dragMoved) {
@@ -748,6 +753,7 @@ var Canvas = (function() {
 
     if (isDragging && isDragGroup) {
       if (_dragRafId) { cancelAnimationFrame(_dragRafId); _dragRafId = null; }
+      App.clearDragBackground();
       isDragging = false;
       isDragGroup = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
@@ -761,6 +767,7 @@ var Canvas = (function() {
 
     if (isDragging) {
       if (_dragRafId) { cancelAnimationFrame(_dragRafId); _dragRafId = null; }
+      App.clearDragBackground();
       isDragging = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
       if (!dragMoved) {

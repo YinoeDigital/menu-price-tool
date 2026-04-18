@@ -271,34 +271,65 @@ var App = (function() {
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
 
-  // 拖曳期間渲染：拖曳中的框用 FillEngine 顯示填色，其餘只畫外框（效能優化）
+  // ── 拖曳背景 pre-bake（排除被拖曳的框，先算一次存入離屏 canvas）──
+  var _dragBgCanvas = null;
+
+  function prepareDragBackground(excludeIds) {
+    var img = Canvas.getImage();
+    if (!img) { _dragBgCanvas = null; return; }
+    var mc = Canvas.getCanvas();
+    _dragBgCanvas = document.createElement('canvas');
+    _dragBgCanvas.width  = mc.width;
+    _dragBgCanvas.height = mc.height;
+    var bCtx = _dragBgCanvas.getContext('2d');
+    bCtx.drawImage(img, 0, 0);
+    var zoom = Canvas.getZoom();
+    var lw   = Math.max(1, 1.5 / zoom);
+    for (var i = 0; i < boxes.length; i++) {
+      if (excludeIds && excludeIds.indexOf(boxes[i].id) >= 0) continue; // 跳過拖曳框
+      var box = boxes[i];
+      if (previewMode) {
+        _renderBoxPreview(bCtx, _dragBgCanvas, box); // 完整 FillEngine 渲染
+      } else {
+        var g = box.group ? Groups.getById(box.group) : null;
+        var bc = g ? g.color : '#C0392B';
+        bCtx.strokeStyle = bc; bCtx.lineWidth = lw; bCtx.setLineDash([4/zoom, 3/zoom]);
+        bCtx.strokeRect(box.x, box.y, box.w, box.h);
+        bCtx.setLineDash([]);
+      }
+    }
+  }
+
+  function clearDragBackground() {
+    _dragBgCanvas = null;
+  }
+
+  // 拖曳期間渲染：drawImage(dragBgCanvas) 復原背景（一次貼圖）+ 拖曳框 FillEngine
   function dragRedraw(draggedIds) {
     var img = Canvas.getImage();
     if (!img) return;
     var ctx = Canvas.getCtx();
-    var mc = Canvas.getCanvas();
+    var mc  = Canvas.getCanvas();
     var zoom = Canvas.getZoom();
     ctx.clearRect(0, 0, mc.width, mc.height);
-    ctx.drawImage(img, 0, 0);
+
+    // 貼背景（pre-baked 或 原圖）
+    if (_dragBgCanvas) {
+      ctx.drawImage(_dragBgCanvas, 0, 0);
+    } else {
+      ctx.drawImage(img, 0, 0);
+    }
+
+    // 只渲染拖曳中的框
     var lw = Math.max(1, 1.5 / zoom);
-
     for (var i = 0; i < boxes.length; i++) {
+      if (!draggedIds || draggedIds.indexOf(boxes[i].id) < 0) continue;
       var box = boxes[i];
-      var g = box.group ? Groups.getById(box.group) : null;
-      var bc = g ? g.color : '#C0392B';
-      var isDragged = draggedIds && draggedIds.indexOf(box.id) >= 0;
-
-      if (previewMode && isDragged) {
-        // 只對拖曳中的框做 FillEngine 渲染
+      if (previewMode) {
         _renderBoxPreview(ctx, mc, box);
-      } else if (previewMode) {
-        // 非拖曳框：暫時用框線 + 半透明底色表示
-        ctx.strokeStyle = bc; ctx.lineWidth = lw; ctx.setLineDash([4/zoom, 3/zoom]);
-        ctx.strokeRect(box.x, box.y, box.w, box.h);
-        ctx.setLineDash([]);
-        ctx.fillStyle = Groups.hexAlpha(bc, 0.09);
-        ctx.fillRect(box.x, box.y, box.w, box.h);
       } else {
+        var g = box.group ? Groups.getById(box.group) : null;
+        var bc = g ? g.color : '#C0392B';
         ctx.strokeStyle = bc; ctx.lineWidth = lw; ctx.setLineDash([4/zoom, 3/zoom]);
         ctx.strokeRect(box.x, box.y, box.w, box.h);
         ctx.setLineDash([]);
@@ -1346,6 +1377,8 @@ var App = (function() {
     saveState: saveState,
     undo: undo,
     redo: redo,
-    dragRedraw: dragRedraw
+    dragRedraw: dragRedraw,
+    prepareDragBackground: prepareDragBackground,
+    clearDragBackground: clearDragBackground
   };
 })();
