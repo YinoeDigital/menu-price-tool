@@ -34,6 +34,10 @@ var Canvas = (function() {
   var selectedIds = [];
   var _selRafId = null; // rAF throttle handle
 
+  // ── 拖曳 rAF 節流 ──
+  var _dragRafId = null;
+  var _dragPendingGuides = null; // 暫存最新 guide，在 rAF 內一次繪製
+
   // ── 群組拖曳（Alt + 拖曳多選框）──
   var isDragGroup = false;
   var dragGroupOrigins = []; // [{ id, origX, origY }, ...]
@@ -426,7 +430,7 @@ var Canvas = (function() {
       var newY = p.y - dragOffY;
       var g = computeGuides(newX, newY, dragBox.w, dragBox.h);
       if (isDragGroup) {
-        // 群組拖曳：同步移動所有選取框
+        // 群組拖曳：同步更新所有選取框座標
         var deltaX = (g.snapX !== null ? g.snapX : newX) - dragOrigX;
         var deltaY = (g.snapY !== null ? g.snapY : newY) - dragOrigY;
         var allBxs = App.getBoxes();
@@ -443,9 +447,17 @@ var Canvas = (function() {
         dragBox.x = dragOrigX + deltaX;
         dragBox.y = dragOrigY + deltaY;
         dragMoved = true;
-        App.dragRedraw(selectedIds.slice()); // 拖曳框顯示填色
-        drawGuides(g);
         document.getElementById('coordTxt').textContent = 'x:' + Math.round(dragBox.x) + ' y:' + Math.round(dragBox.y);
+        // rAF 節流：每幀最多渲染一次
+        _dragPendingGuides = g;
+        if (!_dragRafId) {
+          var _capIds = selectedIds.slice();
+          _dragRafId = requestAnimationFrame(function() {
+            _dragRafId = null;
+            App.dragRedraw(_capIds);
+            if (_dragPendingGuides) { drawGuides(_dragPendingGuides); _dragPendingGuides = null; }
+          });
+        }
         return;
       }
       if (g.snapX !== null) newX = g.snapX;
@@ -453,9 +465,17 @@ var Canvas = (function() {
       dragBox.x = newX;
       dragBox.y = newY;
       dragMoved = true;
-      App.dragRedraw([dragBox.id]); // 拖曳框顯示填色
-      drawGuides(g);
       document.getElementById('coordTxt').textContent = 'x:' + Math.round(newX) + ' y:' + Math.round(newY);
+      // rAF 節流：每幀最多渲染一次
+      _dragPendingGuides = g;
+      if (!_dragRafId) {
+        var _capId = dragBox.id;
+        _dragRafId = requestAnimationFrame(function() {
+          _dragRafId = null;
+          App.dragRedraw([_capId]);
+          if (_dragPendingGuides) { drawGuides(_dragPendingGuides); _dragPendingGuides = null; }
+        });
+      }
       return;
     }
 
@@ -570,8 +590,15 @@ var Canvas = (function() {
       dragBox.x = dragOrigX + deltaX;
       dragBox.y = dragOrigY + deltaY;
       dragMoved = true;
-      App.dragRedraw(selectedIds.slice());
-      drawGuides(g);
+      _dragPendingGuides = g;
+      if (!_dragRafId) {
+        var _wCapIds = selectedIds.slice();
+        _dragRafId = requestAnimationFrame(function() {
+          _dragRafId = null;
+          App.dragRedraw(_wCapIds);
+          if (_dragPendingGuides) { drawGuides(_dragPendingGuides); _dragPendingGuides = null; }
+        });
+      }
       return;
     }
     if (g.snapX !== null) newX = g.snapX;
@@ -579,8 +606,15 @@ var Canvas = (function() {
     dragBox.x = newX;
     dragBox.y = newY;
     dragMoved = true;
-    App.dragRedraw([dragBox.id]);
-    drawGuides(g);
+    _dragPendingGuides = g;
+    if (!_dragRafId) {
+      var _wCapId = dragBox.id;
+      _dragRafId = requestAnimationFrame(function() {
+        _dragRafId = null;
+        App.dragRedraw([_wCapId]);
+        if (_dragPendingGuides) { drawGuides(_dragPendingGuides); _dragPendingGuides = null; }
+      });
+    }
   }
 
   function onMouseUp(e) {
@@ -628,11 +662,12 @@ var Canvas = (function() {
 
     // 群組拖曳結束（狀態已在 dragStart 時存入）
     if (isDragging && isDragGroup) {
+      if (_dragRafId) { cancelAnimationFrame(_dragRafId); _dragRafId = null; }
       isDragging = false;
       isDragGroup = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
       if (dragMoved) { App.renderPriceList(); }
-      App.redraw(); // 顯示 FillEngine 填色
+      App.redraw(); // 顯示完整 FillEngine 填色
       refreshAlignBar();
       dragBox = null;
       dragGroupOrigins = [];
@@ -641,6 +676,7 @@ var Canvas = (function() {
 
     // 單一框拖曳結束
     if (isDragging) {
+      if (_dragRafId) { cancelAnimationFrame(_dragRafId); _dragRafId = null; }
       isDragging = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
       if (!dragMoved) {
@@ -711,6 +747,7 @@ var Canvas = (function() {
     }
 
     if (isDragging && isDragGroup) {
+      if (_dragRafId) { cancelAnimationFrame(_dragRafId); _dragRafId = null; }
       isDragging = false;
       isDragGroup = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
@@ -723,6 +760,7 @@ var Canvas = (function() {
     }
 
     if (isDragging) {
+      if (_dragRafId) { cancelAnimationFrame(_dragRafId); _dragRafId = null; }
       isDragging = false;
       mc.style.cursor = tabHeld ? 'crosshair' : 'default';
       if (!dragMoved) {
