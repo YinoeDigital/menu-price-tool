@@ -162,6 +162,7 @@ var App = (function() {
       i.onload = function() {
         _origImgCanvas = null; _origImgCtx = null; // 清除舊圖快取
         _aiAlignHints = {};
+        _invalidateAllFillCaches();
         Canvas.setImage(i);
         document.getElementById('emptySt').style.display = 'none';
         document.getElementById('cc').style.display = 'block';
@@ -461,6 +462,38 @@ var App = (function() {
     if (typeof Canvas.drawSelOverlays === 'function') Canvas.drawSelOverlays();
   }
 
+  // ── 填色快取輔助（Plan A + C）──
+  // key 涵蓋所有影響 FillEngine 輸出的因素：位置、尺寸、模式、來源、羽化
+  function _getFillCacheKey(box) {
+    var feather = box.fillMode === 'patch' ? FillEngine.getFeather('patch') : FillEngine.getFeather('autofill');
+    var src = box.patchSource
+      ? [Math.round(box.patchSource.x), Math.round(box.patchSource.y),
+         Math.round(box.patchSource.w), Math.round(box.patchSource.h)].join(',')
+      : 'none';
+    return [Math.round(box.x), Math.round(box.y), Math.round(box.w), Math.round(box.h),
+            box.fillMode || 'autofill', feather, src].join('|');
+  }
+
+  // FillEngine 跑完後，把結果截圖存入 box._fillCache
+  function _storeFillCache(box, mc, key) {
+    var bw = Math.round(box.w), bh = Math.round(box.h);
+    var bx = Math.round(box.x), by = Math.round(box.y);
+    if (bw < 1 || bh < 1) return;
+    if (!box._fillCache) box._fillCache = document.createElement('canvas');
+    box._fillCache.width  = bw;
+    box._fillCache.height = bh;
+    box._fillCache.getContext('2d').drawImage(mc, bx, by, bw, bh, 0, 0, bw, bh);
+    box._fillCacheKey = key;
+  }
+
+  // 新圖載入或清除全部時，清空所有框的填色快取
+  function _invalidateAllFillCaches() {
+    for (var i = 0; i < boxes.length; i++) {
+      boxes[i]._fillCache = null;
+      boxes[i]._fillCacheKey = null;
+    }
+  }
+
   function redraw() {
     // Reset enhancement flag when canvas is re-rendered from scratch
     if (enhancementApplied) {
@@ -481,6 +514,9 @@ var App = (function() {
     var pct = getGlobalPct();
     var groups = Groups.getAll();
 
+    // [Plan C] 互動期間（繪框中 / 選取補丁來源中）跳過 FillEngine，改用快取
+    var _isInteracting = Canvas.isDrawing() || FillEngine.isPatchSelecting();
+
     for (var i = 0; i < boxes.length; i++) {
       var box = boxes[i];
       var font = box.fontFamily || globalFont;
@@ -489,21 +525,38 @@ var App = (function() {
       var bc = g ? g.color : '#C0392B';
 
       if (previewMode) {
+        // [Plan A+C] 計算快取 key，決定是否可以跳過 FillEngine
+        var _bKey  = _getFillCacheKey(box);
+        var _bHit  = box._fillCache && box._fillCacheKey === _bKey; // 完全命中
+        var _bUse  = _bHit || (_isInteracting && box._fillCache);   // 命中 or 互動期間用舊快取
+
         // 遮罩框：只填色不印字
         if (box.isMask) {
-          FillEngine.apply(ctx, mc, box, {
-            fillMode: 'patch',
-            patchSource: box.patchSource,
-            feather: FillEngine.getFeather('patch')
-          });
+          if (_bUse) {
+            ctx.drawImage(box._fillCache, Math.round(box.x), Math.round(box.y));
+          } else {
+            FillEngine.apply(ctx, mc, box, {
+              fillMode: 'patch',
+              patchSource: box.patchSource,
+              feather: FillEngine.getFeather('patch')
+            });
+            _storeFillCache(box, mc, _bKey);
+          }
           continue;
         }
-        // 使用 FillEngine 填色
-        var bgColor = FillEngine.apply(ctx, mc, box, {
-          fillMode: box.fillMode,
-          patchSource: box.patchSource,
-          feather: box.fillMode === 'patch' ? FillEngine.getFeather('patch') : FillEngine.getFeather('autofill')
-        });
+        // 使用 FillEngine 填色（快取命中則直接 drawImage）
+        var bgColor;
+        if (_bUse) {
+          ctx.drawImage(box._fillCache, Math.round(box.x), Math.round(box.y));
+          bgColor = null; // 快取命中時無 bgColor，墨水色走 _sampleInkColor 路徑
+        } else {
+          bgColor = FillEngine.apply(ctx, mc, box, {
+            fillMode: box.fillMode,
+            patchSource: box.patchSource,
+            feather: box.fillMode === 'patch' ? FillEngine.getFeather('patch') : FillEngine.getFeather('autofill')
+          });
+          _storeFillCache(box, mc, _bKey);
+        }
 
         // ── Plan A：優先用原圖墨水色，fallback 用亮度判斷 ──
         var tc;
@@ -905,6 +958,7 @@ var App = (function() {
       i.onload = function() {
         _origImgCanvas = null; _origImgCtx = null; // 清除舊圖快取
         _aiAlignHints = {};
+        _invalidateAllFillCaches();
         Canvas.setImage(i);
         var mc = Canvas.getCanvas();
         mc.dataset.fmt = e.fmt || 'png';

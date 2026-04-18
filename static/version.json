@@ -1,4 +1,4 @@
 {
-  "version": "1.5.24",
-  "note": "AI渲染文字增強：雙層墨水擴散(A)、fontSize比例shadowBlur(B)、細描邊飽滿感(C)"
+  "version": "1.5.25",
+  "note": "效能優化：填色快取(A)、持久canvas複用(B)、互動期間跳過FillEngine(C)"
 }

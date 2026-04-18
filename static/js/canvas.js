@@ -925,6 +925,7 @@ var Canvas = (function() {
     getSelectedIds: function() { return selectedIds.slice(); },
     clearMultiSel: clearMultiSel,
     toggleMaskMode: toggleMaskMode,
-    exitMaskMode: exitMaskMode
+    exitMaskMode: exitMaskMode,
+    isDrawing: function() { return drawing; }
   };
 })();
