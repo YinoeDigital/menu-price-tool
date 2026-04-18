@@ -63,7 +63,7 @@ var FillEngine = (function () {
     var btn = document.getElementById('btnPatchSelect');
     if (btn) {
       btn.classList.add('selecting');
-      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="4 2"/></svg> 拖拉框選來源區域…';
+      btn.textContent = '拖拉框選來源區域…';
     }
     // 重新選取時隱藏遮罩按鈕（直到新來源設定完成）
     var btnMask = document.getElementById('btnMaskDraw');
@@ -79,7 +79,7 @@ var FillEngine = (function () {
     var btn2 = document.getElementById('btnPatchSelect');
     if (btn2) {
       btn2.classList.remove('selecting');
-      btn2.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 重新選取來源';
+      btn2.textContent = '重新選取來源';
     }
 
     // 顯示來源預覽縮圖

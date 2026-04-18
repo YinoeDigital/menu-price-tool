@@ -9,8 +9,8 @@
 <title>菜單價格調整工具</title>
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="static/css/style.css?v=1.5.20">
-<script>var APP_VERSION = '1.5.20';</script>
+<link rel="stylesheet" href="static/css/style.css?v=1.5.21">
+<script>var APP_VERSION = '1.5.21';</script>
 </head>
 <body>
 <div class="app">
@@ -203,11 +203,10 @@
             先框選空白背景作為<b style="color:var(--red);">來源區域</b>，再框選要蓋掉的價格。
             <div style="margin-top:8px;display:flex;gap:5px;">
               <button class="btn btn-outline" id="btnPatchSelect" style="font-size:11px;padding:6px 10px;flex:1;" onclick="FillEngine.startPatchSelect()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 點此選取來源
               </button>
-              <button class="btn btn-outline" id="btnMaskDraw" style="font-size:11px;padding:6px 10px;display:none;white-space:nowrap;" onclick="Canvas.toggleMaskMode()" title="框選要蓋住的區域，用紋理填色覆蓋（不顯示數字）">
-                🎭 覆蓋遮罩
+              <button class="btn btn-outline" id="btnMaskDraw" style="font-size:11px;padding:6px 10px;flex:1;display:none;" onclick="Canvas.toggleMaskMode()" title="框選要蓋住的區域，用紋理填色覆蓋（不顯示數字）">
+                覆蓋遮罩
               </button>
             </div>
             <img id="patch-source-preview" src="" alt="來源預覽" style="display:none;width:100%;max-height:60px;object-fit:cover;border-radius:4px;border:1.5px solid var(--red);margin-top:6px;">
@@ -675,7 +674,7 @@
 
 <!-- Scripts — 順序重要 -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
-<script src="static/js/canvas.js?v=1.5.20"></script>
+<script src="static/js/canvas.js?v=1.5.21"></script>
 <!-- Update Toast -->
 <div class="upd-toast" id="updToast">
   <div class="upd-icon">
@@ -696,12 +695,12 @@
   </button>
 </div>
 
-<script src="static/js/rulers.js?v=1.5.20"></script>
-<script src="static/js/fillengine.js?v=1.5.20"></script>
-<script src="static/js/groups.js?v=1.5.20"></script>
-<script src="static/js/library.js?v=1.5.20"></script>
-<script src="static/js/floatpanel.js?v=1.5.20"></script>
-<script src="static/js/app.js?v=1.5.20"></script>
+<script src="static/js/rulers.js?v=1.5.21"></script>
+<script src="static/js/fillengine.js?v=1.5.21"></script>
+<script src="static/js/groups.js?v=1.5.21"></script>
+<script src="static/js/library.js?v=1.5.21"></script>
+<script src="static/js/floatpanel.js?v=1.5.21"></script>
+<script src="static/js/app.js?v=1.5.21"></script>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
     App.init();
