@@ -517,6 +517,7 @@ var Canvas = (function() {
         var sw = Math.abs(selEndC.x - selStartC.x);
         var sh = Math.abs(selEndC.y - selStartC.y);
         if (sw >= 4 && sh >= 4) {
+          // 拖曳夠大 → 框選多選
           var allBoxes = App.getBoxes();
           selectedIds = [];
           for (var si = 0; si < allBoxes.length; si++) {
@@ -530,7 +531,18 @@ var Canvas = (function() {
           drawSelOverlays();
           if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
         } else {
+          // 小移動（點擊）→ 嘗試開啟編輯面板，行為同一般點擊
           App.redraw();
+          var clickBoxes = App.getBoxes();
+          var cx = selStartC ? selStartC.x : sx;
+          var cy = selStartC ? selStartC.y : sy;
+          for (var ci2 = clickBoxes.length - 1; ci2 >= 0; ci2--) {
+            var cb = clickBoxes[ci2];
+            if (cx >= cb.x && cx <= cb.x + cb.w && cy >= cb.y && cy <= cb.y + cb.h) {
+              FloatPanel.openEdit(cb);
+              return;
+            }
+          }
         }
       }
       return;
@@ -599,6 +611,7 @@ var Canvas = (function() {
         var sw = Math.abs(selEndC.x - selStartC.x);
         var sh = Math.abs(selEndC.y - selStartC.y);
         if (sw >= 4 && sh >= 4) {
+          // 拖曳夠大 → 框選多選
           var allBoxes = App.getBoxes();
           selectedIds = [];
           for (var si = 0; si < allBoxes.length; si++) {
@@ -612,7 +625,18 @@ var Canvas = (function() {
           drawSelOverlays();
           if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
         } else {
+          // 小移動（點擊）→ 嘗試開啟編輯面板
           App.redraw();
+          var clickBoxes2 = App.getBoxes();
+          var cx2 = selStartC ? selStartC.x : sx;
+          var cy2 = selStartC ? selStartC.y : sy;
+          for (var ci3 = clickBoxes2.length - 1; ci3 >= 0; ci3--) {
+            var cb2 = clickBoxes2[ci3];
+            if (cx2 >= cb2.x && cx2 <= cb2.x + cb2.w && cy2 >= cb2.y && cy2 <= cb2.y + cb2.h) {
+              FloatPanel.openEdit(cb2);
+              return;
+            }
+          }
         }
       }
       return;
