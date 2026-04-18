@@ -496,6 +496,27 @@ var FloatPanel = (function() {
     if (App.isPreview()) App.redraw();
   }
 
+  // ── 刪除當前價格框 ──
+  function deleteCurrentBox() {
+    if (editingId !== null) {
+      // 編輯既有框：詢問確認
+      var id = editingId;
+      App.showCD(
+        '刪除價格框',
+        '確定刪除這個價格框？刪除後可透過「上一步」還原。',
+        '返回',
+        '確認刪除',
+        function() {
+          close();
+          App.deleteBox(id);
+        }
+      );
+    } else {
+      // 新建框尚未儲存：直接關閉（相當於取消）
+      close();
+    }
+  }
+
   function applyToAll() {
     var count = App.getBoxes().length;
     if (count === 0) { App.setSt('目前沒有任何價格框'); return; }
@@ -591,6 +612,7 @@ var FloatPanel = (function() {
     getGroup: getGroup,
     getStickyFontSize: getStickyFontSize,
     showGroupGuide: showGroupGuide,
-    closeGroupGuide: closeGroupGuide
+    closeGroupGuide: closeGroupGuide,
+    deleteCurrentBox: deleteCurrentBox
   };
 })();

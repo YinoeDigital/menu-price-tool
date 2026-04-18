@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
-<script>var APP_VERSION = '1.5.15';</script>
+<script>var APP_VERSION = '1.5.16';</script>
 </head>
 <body>
 <div class="app">
@@ -625,7 +625,12 @@
           </div>
         </div>
         <div class="fp-ft" id="fpFoot">
-          <button class="btn btn-ghost" style="flex:1;" onclick="FloatPanel.reqClose()">取消</button>
+          <button class="btn btn-del" style="flex:1;" onclick="FloatPanel.deleteCurrentBox()" title="刪除此價格框">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+            刪除
+          </button>
           <button class="btn btn-apply-all" style="flex:2;" onclick="FloatPanel.applyToAll()">全部變更</button>
           <button class="btn btn-primary" style="flex:1;" onclick="FloatPanel.confirm()">加入</button>
         </div>

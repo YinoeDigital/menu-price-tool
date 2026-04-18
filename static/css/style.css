@@ -137,6 +137,9 @@ select:focus,input:focus{border-color:var(--red);}
 .btn-ghost:hover{background:var(--cream);}
 .btn-apply-all{background:#F5EEF8;color:#7D3C98 !important;border:1.5px solid #C39BD3;}
 .btn-apply-all:hover{background:#EBD5F5;border-color:#7D3C98;}
+.btn-del{background:transparent;color:#C0392B !important;border:1px solid #E8BBB5;}
+.btn-del svg{stroke:#C0392B;}
+.btn-del:hover{background:#FAEAEA;border-color:#C0392B;}
 /* ── AI渲染掃描線 ── */
 .scan-line-el{
   position:absolute;height:4px;border-radius:2px;
