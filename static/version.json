@@ -1,4 +1,4 @@
 {
-  "version": "1.5.18",
-  "note": "拖曳時全部框保持填色：pre-bake 背景技術，拖曳框外一幀貼圖"
+  "version": "1.5.19",
+  "note": "Plan A 自動採樣墨水色 + Plan B blur柔化 + 拖曳 pre-bake 快照修復"
 }

@@ -145,6 +145,7 @@ var App = (function() {
       currentImgB64 = ev.target.result;
       var i = new Image();
       i.onload = function() {
+        _origImgCanvas = null; _origImgCtx = null; // 清除舊圖快取
         Canvas.setImage(i);
         document.getElementById('emptySt').style.display = 'none';
         document.getElementById('cc').style.display = 'block';
@@ -204,6 +205,77 @@ var App = (function() {
     }
   }
 
+  // ── Plan A：自動採樣原圖墨水色（讓新數字顏色貼近原菜單字體色）──
+  var _origImgCanvas = null;
+  var _origImgCtx    = null;
+
+  function _getOrigCtx() {
+    var imgEl = Canvas.getImage();
+    if (!imgEl) return null;
+    if (!_origImgCanvas || _origImgCanvas.width !== imgEl.width || _origImgCanvas.height !== imgEl.height) {
+      _origImgCanvas = document.createElement('canvas');
+      _origImgCanvas.width  = imgEl.width;
+      _origImgCanvas.height = imgEl.height;
+      _origImgCtx = _origImgCanvas.getContext('2d');
+      _origImgCtx.drawImage(imgEl, 0, 0);
+    }
+    return _origImgCtx;
+  }
+
+  // 在原圖的 box 上下各取 20px 細帶，找出墨水色（亮背景取最暗，暗背景取最亮）
+  function _sampleInkColor(box) {
+    var origCtx = _getOrigCtx();
+    if (!origCtx) return null;
+    var imgEl = Canvas.getImage();
+    var bx = Math.max(0, Math.round(box.x));
+    var bw = Math.min(Math.round(box.w), imgEl.width - bx);
+    if (bw < 2) return null;
+
+    var stripH = Math.min(20, Math.round(box.h));
+    var samples = [];
+
+    try {
+      // 上方帶
+      var ay = Math.max(0, Math.round(box.y) - stripH);
+      var ah = Math.min(stripH, Math.round(box.y) - ay);
+      if (ah > 0) {
+        var d1 = origCtx.getImageData(bx, ay, bw, ah).data;
+        for (var i = 0; i < d1.length; i += 4) {
+          samples.push({ r: d1[i], g: d1[i+1], b: d1[i+2],
+            l: 0.299*d1[i] + 0.587*d1[i+1] + 0.114*d1[i+2] });
+        }
+      }
+      // 下方帶
+      var by2 = Math.min(Math.round(box.y + box.h), imgEl.height);
+      var bh2 = Math.min(stripH, imgEl.height - by2);
+      if (bh2 > 0) {
+        var d2 = origCtx.getImageData(bx, by2, bw, bh2).data;
+        for (var j = 0; j < d2.length; j += 4) {
+          samples.push({ r: d2[j], g: d2[j+1], b: d2[j+2],
+            l: 0.299*d2[j] + 0.587*d2[j+1] + 0.114*d2[j+2] });
+        }
+      }
+    } catch(e) { return null; }
+
+    if (samples.length < 5) return null;
+
+    // 求亮度中位數判斷背景明暗
+    var lums = samples.map(function(s){ return s.l; }).sort(function(a,b){ return a-b; });
+    var medLum = lums[Math.floor(lums.length / 2)];
+    var lightBg = medLum > 128;
+
+    // 依背景明暗選墨水像素（最暗或最亮 15%）
+    samples.sort(function(a, b){ return a.l - b.l; });
+    var inkCount = Math.max(3, Math.floor(samples.length * 0.15));
+    var inkPx = lightBg ? samples.slice(0, inkCount) : samples.slice(samples.length - inkCount);
+
+    var rs = inkPx.map(function(p){ return p.r; }).sort(function(a,b){ return a-b; });
+    var gs = inkPx.map(function(p){ return p.g; }).sort(function(a,b){ return a-b; });
+    var bs = inkPx.map(function(p){ return p.b; }).sort(function(a,b){ return a-b; });
+    var mid = Math.floor(rs.length / 2);
+    return 'rgb(' + rs[mid] + ',' + gs[mid] + ',' + bs[mid] + ')';
+  }
+
   // ── REDRAW ──
 
   // 拖曳期間單一框的 FillEngine + 文字渲染（被 dragRedraw 呼叫）
@@ -216,15 +288,28 @@ var App = (function() {
       patchSource: box.patchSource,
       feather: box.fillMode === 'patch' ? FillEngine.getFeather('patch') : FillEngine.getFeather('autofill')
     });
-    var r2, gv2, b2;
-    if (bgColor && bgColor.r !== undefined) {
-      r2 = bgColor.r; gv2 = bgColor.g; b2 = bgColor.b;
+    // ── Plan A：優先用原圖墨水色，fallback 用亮度判斷 ──
+    var tc;
+    if (box.fontColor) {
+      tc = box.fontColor;
     } else {
-      var sid = ctx.getImageData(Math.max(0, box.x + 2), Math.max(0, box.y + 2), 4, 4);
-      r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
+      var sampledInk = _sampleInkColor(box);
+      if (sampledInk) {
+        tc = sampledInk;
+      } else {
+        var r2, gv2, b2;
+        if (bgColor && bgColor.r !== undefined) {
+          r2 = bgColor.r; gv2 = bgColor.g; b2 = bgColor.b;
+        } else {
+          try {
+            var sid = ctx.getImageData(Math.max(0, box.x + 2), Math.max(0, box.y + 2), 4, 4);
+            r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
+          } catch(e) { r2 = 60; gv2 = 30; b2 = 20; }
+        }
+        var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
+        tc = lum > 128 ? '#3D1A10' : '#FAF0E0';
+      }
     }
-    var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
-    var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
     var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
     var ns;
     switch (_affix) {
@@ -244,11 +329,13 @@ var App = (function() {
       ctx.font = bStyle + Math.round(fs) + "px '" + font + "',serif";
       ctx.fillStyle = tc; ctx.textAlign = bAlign;
       var charX = bAlign === 'right' ? box.x + box.w - 3 : bAlign === 'left' ? box.x + 3 : box.x + box.w / 2;
+      // Plan B：垂直文字柔化
+      if ('filter' in ctx) ctx.filter = 'blur(0.4px)';
       for (var ci = 0; ci < ns.length; ci++) {
         ctx.fillText(ns[ci], charX, box.y + ch * (ci + 0.8));
       }
+      if ('filter' in ctx) ctx.filter = 'none';
     } else {
-      var zoom = Canvas.getZoom();
       var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
       ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
       var vAl = box.verticalAlign || 'middle';
@@ -257,7 +344,10 @@ var App = (function() {
       var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
       ctx.textAlign = bAlign;
       fillAffixOverflow(ctx, ns, tx, box, bgColor);
+      // Plan B：水平文字柔化
+      if ('filter' in ctx) ctx.filter = 'blur(0.4px)';
       ctx.fillText(ns, tx, ty);
+      if ('filter' in ctx) ctx.filter = 'none';
       if (box.strikethrough) {
         var tw = ctx.measureText(ns).width;
         var lx0 = bAlign === 'left' ? tx : bAlign === 'right' ? tx - tw : tx - tw / 2;
@@ -282,20 +372,21 @@ var App = (function() {
     _dragBgCanvas.width  = mc.width;
     _dragBgCanvas.height = mc.height;
     var bCtx = _dragBgCanvas.getContext('2d');
-    bCtx.drawImage(img, 0, 0);
-    var zoom = Canvas.getZoom();
-    var lw   = Math.max(1, 1.5 / zoom);
-    for (var i = 0; i < boxes.length; i++) {
-      if (excludeIds && excludeIds.indexOf(boxes[i].id) >= 0) continue; // 跳過拖曳框
-      var box = boxes[i];
-      if (previewMode) {
-        _renderBoxPreview(bCtx, _dragBgCanvas, box); // 完整 FillEngine 渲染
-      } else {
-        var g = box.group ? Groups.getById(box.group) : null;
-        var bc = g ? g.color : '#C0392B';
-        bCtx.strokeStyle = bc; bCtx.lineWidth = lw; bCtx.setLineDash([4/zoom, 3/zoom]);
-        bCtx.strokeRect(box.x, box.y, box.w, box.h);
-        bCtx.setLineDash([]);
+
+    // ── 直接快照當前 canvas（已含所有 FillEngine fills）──
+    bCtx.drawImage(mc, 0, 0);
+
+    // ── 抹除被拖曳框的舊位置，還原為原始圖片像素 ──
+    if (excludeIds && excludeIds.length > 0) {
+      for (var i = 0; i < boxes.length; i++) {
+        if (excludeIds.indexOf(boxes[i].id) < 0) continue;
+        var box = boxes[i];
+        var pad = 2; // 多清 2px 邊緣，避免殘影
+        var cx = Math.max(0, Math.round(box.x) - pad);
+        var cy = Math.max(0, Math.round(box.y) - pad);
+        var cw2 = Math.min(Math.round(box.w) + pad * 2, mc.width  - cx);
+        var ch2 = Math.min(Math.round(box.h) + pad * 2, mc.height - cy);
+        bCtx.drawImage(img, cx, cy, cw2, ch2, cx, cy, cw2, ch2);
       }
     }
   }
@@ -393,16 +484,28 @@ var App = (function() {
           feather: box.fillMode === 'patch' ? FillEngine.getFeather('patch') : FillEngine.getFeather('autofill')
         });
 
-        // 計算文字顏色（依背景亮度）
-        var r2, gv2, b2;
-        if (bgColor && bgColor.r !== undefined) {
-          r2 = bgColor.r; gv2 = bgColor.g; b2 = bgColor.b;
+        // ── Plan A：優先用原圖墨水色，fallback 用亮度判斷 ──
+        var tc;
+        if (box.fontColor) {
+          tc = box.fontColor;
         } else {
-          var sid = ctx.getImageData(Math.max(0, box.x + 2), Math.max(0, box.y + 2), 4, 4);
-          r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
+          var sampledInk = _sampleInkColor(box);
+          if (sampledInk) {
+            tc = sampledInk;
+          } else {
+            var r2, gv2, b2;
+            if (bgColor && bgColor.r !== undefined) {
+              r2 = bgColor.r; gv2 = bgColor.g; b2 = bgColor.b;
+            } else {
+              try {
+                var sid = ctx.getImageData(Math.max(0, box.x + 2), Math.max(0, box.y + 2), 4, 4);
+                r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
+              } catch(e) { r2 = 60; gv2 = 30; b2 = 20; }
+            }
+            var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
+            tc = lum > 128 ? '#3D1A10' : '#FAF0E0';
+          }
         }
-        var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
-        var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
         var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
         var ns;
         switch (_affix) {
@@ -422,9 +525,12 @@ var App = (function() {
           ctx.font = bStyle + Math.round(fs) + "px '" + font + "',serif";
           ctx.fillStyle = tc; ctx.textAlign = bAlign;
           var charX = bAlign === 'right' ? box.x + box.w - 3 : bAlign === 'left' ? box.x + 3 : box.x + box.w / 2;
+          // Plan B：垂直文字柔化
+          if ('filter' in ctx) ctx.filter = 'blur(0.4px)';
           for (var ci = 0; ci < ns.length; ci++) {
             ctx.fillText(ns[ci], charX, box.y + ch * (ci + 0.8));
           }
+          if ('filter' in ctx) ctx.filter = 'none';
         } else {
           var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
           ctx.font = bStyle + Math.round(fs2) + "px '" + font + "',serif";
@@ -434,7 +540,10 @@ var App = (function() {
           var tx = bAlign === 'left' ? box.x + 4 : bAlign === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
           ctx.textAlign = bAlign;
           fillAffixOverflow(ctx, ns, tx, box, bgColor);
+          // Plan B：水平文字柔化
+          if ('filter' in ctx) ctx.filter = 'blur(0.4px)';
           ctx.fillText(ns, tx, ty);
+          if ('filter' in ctx) ctx.filter = 'none';
           // 雙刪除線
           if (box.strikethrough) {
             var tw = ctx.measureText(ns).width;
@@ -609,15 +718,28 @@ var App = (function() {
         feather: box.fillMode === 'patch' ? FillEngine.getFeather('patch') : FillEngine.getFeather('autofill')
       });
 
-      var r2, gv2, b2;
-      if (bgColor && bgColor.r !== undefined) {
-        r2 = bgColor.r; gv2 = bgColor.g; b2 = bgColor.b;
+      // ── Plan A：優先用原圖墨水色 ──
+      var tc;
+      if (box.fontColor) {
+        tc = box.fontColor;
       } else {
-        var sid = oc.getImageData(Math.max(0, box.x + 2), Math.max(0, box.y + 2), 4, 4);
-        r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
+        var sampledInkEx = _sampleInkColor(box);
+        if (sampledInkEx) {
+          tc = sampledInkEx;
+        } else {
+          var r2, gv2, b2;
+          if (bgColor && bgColor.r !== undefined) {
+            r2 = bgColor.r; gv2 = bgColor.g; b2 = bgColor.b;
+          } else {
+            try {
+              var sid = oc.getImageData(Math.max(0, box.x + 2), Math.max(0, box.y + 2), 4, 4);
+              r2 = sid.data[0]; gv2 = sid.data[1]; b2 = sid.data[2];
+            } catch(e) { r2 = 60; gv2 = 30; b2 = 20; }
+          }
+          var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
+          tc = lum > 128 ? '#3D1A10' : '#FAF0E0';
+        }
       }
-      var lum = r2 * 0.299 + gv2 * 0.587 + b2 * 0.114;
-      var tc = box.fontColor ? box.fontColor : (lum > 128 ? '#3D1A10' : '#FAF0E0');
       var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
       var ns;
       switch (_affix) {
@@ -637,9 +759,12 @@ var App = (function() {
         oc.font = bStyle2 + Math.round(fs) + "px '" + font + "',serif";
         oc.fillStyle = tc; oc.textAlign = bAlign2;
         var charX2 = bAlign2 === 'right' ? box.x + box.w - 3 : bAlign2 === 'left' ? box.x + 3 : box.x + box.w / 2;
+        // Plan B：匯出也柔化
+        if ('filter' in oc) oc.filter = 'blur(0.4px)';
         for (var ci = 0; ci < ns.length; ci++) {
           oc.fillText(ns[ci], charX2, box.y + ch * (ci + 0.8));
         }
+        if ('filter' in oc) oc.filter = 'none';
       } else {
         var fs2 = box.fontSize > 0 ? box.fontSize : Math.min(box.h * 0.82, box.w / (ns.length * 0.6));
         oc.font = bStyle2 + Math.round(fs2) + "px '" + font + "',serif";
@@ -649,7 +774,10 @@ var App = (function() {
         var tx2 = bAlign2 === 'left' ? box.x + 4 : bAlign2 === 'right' ? box.x + box.w - 4 : box.x + box.w / 2;
         oc.textAlign = bAlign2;
         fillAffixOverflow(oc, ns, tx2, box, bgColor);
+        // Plan B：匯出也柔化
+        if ('filter' in oc) oc.filter = 'blur(0.4px)';
         oc.fillText(ns, tx2, ty2);
+        if ('filter' in oc) oc.filter = 'none';
         if (box.strikethrough) {
           var tw2 = oc.measureText(ns).width;
           var lx2 = bAlign2 === 'left' ? tx2 : bAlign2 === 'right' ? tx2 - tw2 : tx2 - tw2 / 2;
@@ -725,6 +853,7 @@ var App = (function() {
       currentImgB64 = e.imgData;
       var i = new Image();
       i.onload = function() {
+        _origImgCanvas = null; _origImgCtx = null; // 清除舊圖快取
         Canvas.setImage(i);
         var mc = Canvas.getCanvas();
         mc.dataset.fmt = e.fmt || 'png';
