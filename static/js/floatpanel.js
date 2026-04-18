@@ -283,6 +283,13 @@ var FloatPanel = (function() {
   }
 
   function openEdit(box) {
+    // 遮罩框不開編輯面板，改為詢問是否刪除
+    if (box.isMask) {
+      App.showCD('覆蓋遮罩', '點擊可刪除此遮罩框，刪除後可重新繪製。', '取消', '刪除遮罩', function() {
+        App.deleteBox(box.id);
+      });
+      return;
+    }
     currentBox = box;
     editingId = box.id;
     pendingBox = { x: box.x, y: box.y, w: box.w, h: box.h };

@@ -57,8 +57,22 @@ var App = (function() {
 
   // ── INIT ──
   function init() {
-    Canvas.init('mc', 'cw', function(x, y, w, h) {
-      FloatPanel.open(x, y, w, h);
+    Canvas.init('mc', 'cw', function(x, y, w, h, isMask) {
+      if (isMask) {
+        // 覆蓋遮罩框：直接建立，不開 FloatPanel
+        var pSrc = (typeof FillEngine !== 'undefined') ? FillEngine.getPatchSource() : null;
+        addBox({
+          id: Date.now() + '' + Math.round(Math.random() * 1e6),
+          x: x, y: y, w: w, h: h,
+          isMask: true,
+          fillMode: 'patch',
+          patchSource: pSrc,
+          value: 0, newValue: 0,
+          orient: orientation
+        });
+      } else {
+        FloatPanel.open(x, y, w, h);
+      }
     });
     bindUI();
     Groups.render(boxes);
@@ -280,6 +294,15 @@ var App = (function() {
 
   // 拖曳期間單一框的 FillEngine + 文字渲染（被 dragRedraw 呼叫）
   function _renderBoxPreview(ctx, mc, box) {
+    // 遮罩框：只填色，不渲染文字
+    if (box.isMask) {
+      FillEngine.apply(ctx, mc, box, {
+        fillMode: 'patch',
+        patchSource: box.patchSource,
+        feather: FillEngine.getFeather('patch')
+      });
+      return;
+    }
     var globalFont = document.getElementById('fontSel').value;
     var font = box.fontFamily || globalFont;
     var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
@@ -477,6 +500,15 @@ var App = (function() {
       var bc = g ? g.color : '#C0392B';
 
       if (previewMode) {
+        // 遮罩框：只填色不印字
+        if (box.isMask) {
+          FillEngine.apply(ctx, mc, box, {
+            fillMode: 'patch',
+            patchSource: box.patchSource,
+            feather: FillEngine.getFeather('patch')
+          });
+          continue;
+        }
         // 使用 FillEngine 填色
         var bgColor = FillEngine.apply(ctx, mc, box, {
           fillMode: box.fillMode,
@@ -557,14 +589,27 @@ var App = (function() {
         }
         if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
       } else {
-        ctx.strokeStyle = bc; ctx.lineWidth = lw; ctx.setLineDash([]);
-        ctx.strokeRect(box.x, box.y, box.w, box.h);
-        ctx.fillStyle = Groups.hexAlpha(bc, 0.09);
-        ctx.fillRect(box.x, box.y, box.w, box.h);
-        ctx.fillStyle = bc;
-        ctx.font = 'bold ' + Math.round(11 / zoom) + 'px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText('#' + (i+1) + '  ' + box.value + '→' + nv, box.x + 2, box.y - 3 / zoom);
+        if (box.isMask) {
+          // 遮罩框：灰色虛線框，與價格框視覺區分
+          ctx.strokeStyle = '#888'; ctx.lineWidth = lw; ctx.setLineDash([3/zoom, 3/zoom]);
+          ctx.strokeRect(box.x, box.y, box.w, box.h);
+          ctx.setLineDash([]);
+          ctx.fillStyle = 'rgba(120,120,120,0.10)';
+          ctx.fillRect(box.x, box.y, box.w, box.h);
+          ctx.fillStyle = '#888';
+          ctx.font = Math.round(10 / zoom) + 'px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('遮罩', box.x + 2, box.y - 3 / zoom);
+        } else {
+          ctx.strokeStyle = bc; ctx.lineWidth = lw; ctx.setLineDash([]);
+          ctx.strokeRect(box.x, box.y, box.w, box.h);
+          ctx.fillStyle = Groups.hexAlpha(bc, 0.09);
+          ctx.fillRect(box.x, box.y, box.w, box.h);
+          ctx.fillStyle = bc;
+          ctx.font = 'bold ' + Math.round(11 / zoom) + 'px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('#' + (i+1) + '  ' + box.value + '→' + nv, box.x + 2, box.y - 3 / zoom);
+        }
       }
     }
     if (typeof Canvas.drawSelOverlays === 'function') Canvas.drawSelOverlays();
@@ -608,18 +653,19 @@ var App = (function() {
   });
 
   function renderPriceList() {
-    var cnt = boxes.length;
+    var cnt = boxes.filter(function(b) { return !b.isMask; }).length;
     document.getElementById('pcnt').textContent = cnt;
     var rpSub = document.getElementById('rpSub');
     if (rpSub) rpSub.textContent = '共 ' + cnt + ' 個價格框';
     var el = document.getElementById('plist');
-    if (!boxes.length) {
+    if (!cnt) {
       el.innerHTML = '<div style="text-align:center;padding:13px;color:var(--gmd);font-size:12px;">尚未框選任何價格</div>';
       return;
     }
     var html = '';
     for (var i = 0; i < boxes.length; i++) {
       var b = boxes[i];
+      if (b.isMask) continue; // 遮罩框不顯示在價格清單
       var nv = (b.newValue > 0) ? b.newValue : calcBoxPrice(b);
       var g = b.group ? Groups.getById(b.group) : null;
       var col = g ? g.color : '#C0392B';
@@ -711,6 +757,15 @@ var App = (function() {
       var font = box.fontFamily || globalFont2;
       var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
 
+      // 遮罩框：只填色不印字
+      if (box.isMask) {
+        FillEngine.apply(oc, off, box, {
+          fillMode: 'patch',
+          patchSource: box.patchSource,
+          feather: FillEngine.getFeather('patch')
+        });
+        continue;
+      }
       // 使用 FillEngine 填色
       var bgColor = FillEngine.apply(oc, off, box, {
         fillMode: box.fillMode,

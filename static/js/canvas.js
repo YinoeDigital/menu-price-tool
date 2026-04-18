@@ -34,6 +34,9 @@ var Canvas = (function() {
   var selectedIds = [];
   var _selRafId = null; // rAF throttle handle
 
+  // ── 覆蓋遮罩模式 ──
+  var isMaskMode = false;
+
   // ── 拖曳 rAF 節流 ──
   var _dragRafId = null;
   var _dragPendingGuides = null; // 暫存最新 guide，在 rAF 內一次繪製
@@ -131,6 +134,17 @@ var Canvas = (function() {
       e.preventDefault();
       if (window.FloatPanel) FloatPanel.nudgeButtons();
     }, true);
+  }
+
+  // ── 覆蓋遮罩模式切換 ──
+  function toggleMaskMode() {
+    isMaskMode = !isMaskMode;
+    var btn = document.getElementById('btnMaskDraw');
+    if (btn) btn.classList.toggle('active', isMaskMode);
+    if (mc) mc.style.cursor = isMaskMode ? 'crosshair' : 'default';
+    if (typeof App !== 'undefined') {
+      App.setSt(isMaskMode ? '🎭 遮罩模式：框選要蓋住的區域，使用紋理填色覆蓋' : '');
+    }
   }
 
   // ── 對齊輔助計算 ──
@@ -390,8 +404,8 @@ var Canvas = (function() {
       return;
     }
 
-    // 3. Tab 按住 → 繪框模式；patch 選取中也直接進入繪框（不需快捷鍵）
-    if (tabHeld || patchSelecting) {
+    // 3. Tab 按住 → 繪框模式；patch 選取中或遮罩模式也直接進入繪框（不需快捷鍵）
+    if (tabHeld || patchSelecting || isMaskMode) {
       startX = p.x; startY = p.y;
       drawing = true;
       curBox = { x: p.x, y: p.y, w: 0, h: 0 };
@@ -537,6 +551,11 @@ var Canvas = (function() {
         ctx.strokeStyle = '#1a1a1a';
         ctx.lineWidth = 2 / zoomLevel;
         ctx.setLineDash([6 / zoomLevel, 4 / zoomLevel]);
+      } else if (isMaskMode) {
+        // 遮罩繪框：灰色虛線
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 2 / zoomLevel;
+        ctx.setLineDash([5 / zoomLevel, 3 / zoomLevel]);
       } else if (shiftHeld && tabHeld && lastW > 0) {
         ctx.strokeStyle = '#2980B9';
         ctx.lineWidth = 2 / zoomLevel;
@@ -716,7 +735,7 @@ var Canvas = (function() {
       return;
     }
 
-    if (onBoxDraw) onBoxDraw(x, y, w, h);
+    if (onBoxDraw) onBoxDraw(x, y, w, h, isMaskMode);
   }
 
   function onWindowMouseUp(e) {
@@ -793,8 +812,8 @@ var Canvas = (function() {
         if (typeof FillEngine !== 'undefined' && FillEngine.getMode() === 'patch' && FillEngine.isPatchSelecting()) {
           FillEngine.setPatchSource({ x: x, y: y, w: w, h: h });
           App.redraw();
-        } else if (!document.getElementById('fp').classList.contains('open')) {
-          if (onBoxDraw) onBoxDraw(x, y, w, h);
+        } else if (!document.getElementById('fp').classList.contains('open') || isMaskMode) {
+          if (onBoxDraw) onBoxDraw(x, y, w, h, isMaskMode);
         }
       } else {
         App.redraw();
@@ -886,6 +905,7 @@ var Canvas = (function() {
     getLastSize: getLastSize,
     drawSelOverlays: drawSelOverlays,
     getSelectedIds: function() { return selectedIds.slice(); },
-    clearMultiSel: clearMultiSel
+    clearMultiSel: clearMultiSel,
+    toggleMaskMode: toggleMaskMode
   };
 })();

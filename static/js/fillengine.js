@@ -65,6 +65,9 @@ var FillEngine = (function () {
       btn.classList.add('selecting');
       btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="4 2"/></svg> 拖拉框選來源區域…';
     }
+    // 重新選取時隱藏遮罩按鈕（直到新來源設定完成）
+    var btnMask = document.getElementById('btnMaskDraw');
+    if (btnMask) { btnMask.style.display = 'none'; btnMask.classList.remove('active'); }
     App.setSt('請在空白背景處拖拉框選來源紋理區域（黑色虛線框）');
   }
 
@@ -103,6 +106,9 @@ var FillEngine = (function () {
     if (badge) { badge.textContent = '✓ 已設定'; badge.style.background = '#27AE60'; }
     var btnSel = document.getElementById('btnPatchSelect');
     if (btnSel) { btnSel.style.borderColor = ''; btnSel.style.color = ''; }
+    // 來源設定完成 → 顯示「覆蓋遮罩」按鈕
+    var btnMask = document.getElementById('btnMaskDraw');
+    if (btnMask) btnMask.style.display = '';
   }
 
   // ── 方案一：環狀取樣平均色 + 邊緣羽化 ──
