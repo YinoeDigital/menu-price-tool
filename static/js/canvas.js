@@ -143,8 +143,20 @@ var Canvas = (function() {
     if (btn) btn.classList.toggle('active', isMaskMode);
     if (mc) mc.style.cursor = isMaskMode ? 'crosshair' : 'default';
     if (typeof App !== 'undefined') {
-      App.setSt(isMaskMode ? '🎭 遮罩模式：框選要蓋住的區域，使用紋理填色覆蓋' : '');
+      App.setSt(isMaskMode
+        ? '覆蓋遮罩：框選要蓋住的區域，繪製後自動退出（可按 Tab 繼續框選數字）'
+        : '');
     }
+  }
+
+  // 遮罩畫完後自動退出（一次性）
+  function exitMaskMode() {
+    if (!isMaskMode) return;
+    isMaskMode = false;
+    var btn = document.getElementById('btnMaskDraw');
+    if (btn) btn.classList.remove('active');
+    if (mc) mc.style.cursor = 'default';
+    if (typeof App !== 'undefined') App.setSt('✅ 遮罩已繪製，按 Tab 可繼續框選數字');
   }
 
   // ── 對齊輔助計算 ──
@@ -653,11 +665,12 @@ var Canvas = (function() {
         var sw = Math.abs(selEndC.x - selStartC.x);
         var sh = Math.abs(selEndC.y - selStartC.y);
         if (sw >= 4 && sh >= 4) {
-          // 框選多選
+          // 框選多選（遮罩框不可被綠色框選到）
           var allBoxes = App.getBoxes();
           selectedIds = [];
           for (var si = 0; si < allBoxes.length; si++) {
             var sb = allBoxes[si];
+            if (sb.isMask) continue; // 跳過覆蓋遮罩框
             if (sb.x < sx + sw && sb.x + sb.w > sx && sb.y < sy + sh && sb.y + sb.h > sy) {
               selectedIds.push(sb.id);
             }
@@ -735,7 +748,9 @@ var Canvas = (function() {
       return;
     }
 
-    if (onBoxDraw) onBoxDraw(x, y, w, h, isMaskMode);
+    var _wasMask = isMaskMode;
+    if (onBoxDraw) onBoxDraw(x, y, w, h, _wasMask);
+    if (_wasMask) exitMaskMode();
   }
 
   function onWindowMouseUp(e) {
@@ -756,6 +771,7 @@ var Canvas = (function() {
           selectedIds = [];
           for (var si = 0; si < allBoxes.length; si++) {
             var sb = allBoxes[si];
+            if (sb.isMask) continue; // 跳過覆蓋遮罩框
             if (sb.x < sx + sw && sb.x + sb.w > sx && sb.y < sy + sh && sb.y + sb.h > sy) {
               selectedIds.push(sb.id);
             }
@@ -813,7 +829,9 @@ var Canvas = (function() {
           FillEngine.setPatchSource({ x: x, y: y, w: w, h: h });
           App.redraw();
         } else if (!document.getElementById('fp').classList.contains('open') || isMaskMode) {
-          if (onBoxDraw) onBoxDraw(x, y, w, h, isMaskMode);
+          var _wWasMask = isMaskMode;
+          if (onBoxDraw) onBoxDraw(x, y, w, h, _wWasMask);
+          if (_wWasMask) exitMaskMode();
         }
       } else {
         App.redraw();
@@ -906,6 +924,7 @@ var Canvas = (function() {
     drawSelOverlays: drawSelOverlays,
     getSelectedIds: function() { return selectedIds.slice(); },
     clearMultiSel: clearMultiSel,
-    toggleMaskMode: toggleMaskMode
+    toggleMaskMode: toggleMaskMode,
+    exitMaskMode: exitMaskMode
   };
 })();
