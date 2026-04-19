@@ -530,17 +530,14 @@ var App = (function() {
         var _bHit  = box._fillCache && box._fillCacheKey === _bKey; // 完全命中
         var _bUse  = _bHit || (_isInteracting && box._fillCache);   // 命中 or 互動期間用舊快取
 
-        // 遮罩框：只填色不印字
+        // 遮罩框：只填色不印字，不使用快取（羽化邊緣二次混合會產生怪底圖）
         if (box.isMask) {
-          if (_bUse) {
-            ctx.drawImage(box._fillCache, Math.round(box.x), Math.round(box.y));
-          } else {
+          if (!_isInteracting) {
             FillEngine.apply(ctx, mc, box, {
               fillMode: 'patch',
               patchSource: box.patchSource,
               feather: FillEngine.getFeather('patch')
             });
-            _storeFillCache(box, mc, _bKey);
           }
           continue;
         }
@@ -1352,9 +1349,11 @@ var App = (function() {
     });
 
     // 寫入臨時 hints（不修改 box 資料，不影響現有框選/拖曳邏輯）
+    // 注意：只套用 verticalAlign（水平列靠上），不做 textAlign right（會造成右偏移）
     boxes.forEach(function(box) {
-      if (inCol[box.id])      { _aiAlignHints[box.id] = { textAlign: 'right' }; }
-      else if (inRow[box.id]) { _aiAlignHints[box.id] = { verticalAlign: 'top' }; }
+      if (inRow[box.id] && !inCol[box.id]) {
+        _aiAlignHints[box.id] = { verticalAlign: 'top' };
+      }
     });
   }
 
