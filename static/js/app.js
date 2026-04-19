@@ -530,15 +530,14 @@ var App = (function() {
         var _bHit  = box._fillCache && box._fillCacheKey === _bKey; // 完全命中
         var _bUse  = _bHit || (_isInteracting && box._fillCache);   // 命中 or 互動期間用舊快取
 
-        // 遮罩框：只填色不印字，不使用快取（羽化邊緣二次混合會產生怪底圖）
+        // 遮罩框：不快取、不受互動狀態影響，每幀直接執行 FillEngine
+        // （mask 框數量少，效能影響可忽略；互動中也必須維持可見）
         if (box.isMask) {
-          if (!_isInteracting) {
-            FillEngine.apply(ctx, mc, box, {
-              fillMode: 'patch',
-              patchSource: box.patchSource,
-              feather: FillEngine.getFeather('patch')
-            });
-          }
+          FillEngine.apply(ctx, mc, box, {
+            fillMode: 'patch',
+            patchSource: box.patchSource,
+            feather: FillEngine.getFeather('patch')
+          });
           continue;
         }
         // 使用 FillEngine 填色（快取命中則直接 drawImage）
