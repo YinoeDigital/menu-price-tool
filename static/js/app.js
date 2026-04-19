@@ -1366,43 +1366,70 @@ var App = (function() {
     var origCtx2 = origC.getContext('2d');
     var imgW = origC.width, imgH = origC.height;
 
-    // ── 從原圖周圍四個候選區域採樣，取標準差最高（紋理最豐富）的區域 ──
-    var PAD = 4; // 間隔原盒邊緣幾像素再取樣
-    var SW = Math.min(w, 80), SH = Math.min(h, 80); // 採樣塊最大 80×80
-    var candidates = [
-      // 上方
-      { sx: x, sy: Math.max(0, y - SH - PAD), sw: Math.min(SW, w), sh: Math.min(SH, y - PAD) },
-      // 下方
-      { sx: x, sy: Math.min(imgH - 1, y + h + PAD), sw: Math.min(SW, w), sh: Math.min(SH, imgH - (y + h + PAD)) },
-      // 左方
-      { sx: Math.max(0, x - SW - PAD), sy: y, sw: Math.min(SW, x - PAD), sh: Math.min(SH, h) },
-      // 右方
-      { sx: Math.min(imgW - 1, x + w + PAD), sy: y, sw: Math.min(SW, imgW - (x + w + PAD)), sh: Math.min(SH, h) }
-    ];
-
     var bestResiduals = null, bestStd = -1, bestW = 0, bestH = 0;
-    for (var ci = 0; ci < candidates.length; ci++) {
-      var c = candidates[ci];
-      if (c.sw < 4 || c.sh < 4 || c.sx < 0 || c.sy < 0 || c.sx + c.sw > imgW || c.sy + c.sh > imgH) continue;
-      var sd = origCtx2.getImageData(c.sx, c.sy, c.sw, c.sh).data;
-      // 計算亮度均值
-      var lsum = 0, cnt = c.sw * c.sh;
-      var lvals = new Float32Array(cnt);
-      for (var pi = 0; pi < cnt; pi++) {
-        var L = 0.299 * sd[pi*4] + 0.587 * sd[pi*4+1] + 0.114 * sd[pi*4+2];
-        lvals[pi] = L; lsum += L;
+
+    // ── 優先：使用補丁來源區域（使用者手動選定的乾淨背景，保證所有框紋理一致）──
+    var globalPatchSrc = FillEngine.getPatchSource();
+    if (globalPatchSrc) {
+      var gsx = Math.round(globalPatchSrc.x), gsy = Math.round(globalPatchSrc.y);
+      var gsw = Math.min(Math.round(globalPatchSrc.w), imgW - gsx);
+      var gsh = Math.min(Math.round(globalPatchSrc.h), imgH - gsy);
+      if (gsw >= 4 && gsh >= 4 && gsx >= 0 && gsy >= 0) {
+        var gsd = origCtx2.getImageData(gsx, gsy, gsw, gsh).data;
+        var gcnt = gsw * gsh;
+        var glsum = 0;
+        var glvals = new Float32Array(gcnt);
+        for (var gpi = 0; gpi < gcnt; gpi++) {
+          var gL = 0.299 * gsd[gpi*4] + 0.587 * gsd[gpi*4+1] + 0.114 * gsd[gpi*4+2];
+          glvals[gpi] = gL; glsum += gL;
+        }
+        var glmean = glsum / gcnt;
+        var gvsum = 0;
+        for (var gpi2 = 0; gpi2 < gcnt; gpi2++) { var gd = glvals[gpi2] - glmean; gvsum += gd * gd; }
+        bestStd = Math.sqrt(gvsum / gcnt);
+        bestW = gsw; bestH = gsh;
+        bestResiduals = new Float32Array(gcnt);
+        for (var gpi3 = 0; gpi3 < gcnt; gpi3++) { bestResiduals[gpi3] = glvals[gpi3] - glmean; }
       }
-      var lmean = lsum / cnt;
-      // 計算標準差
-      var vsum = 0;
-      for (var pi2 = 0; pi2 < cnt; pi2++) { var d = lvals[pi2] - lmean; vsum += d * d; }
-      var std = Math.sqrt(vsum / cnt);
-      if (std > bestStd) {
-        bestStd = std;
-        bestW = c.sw; bestH = c.sh;
-        // 計算殘差（紋理pattern = 亮度 - 均值）
-        bestResiduals = new Float32Array(cnt);
-        for (var pi3 = 0; pi3 < cnt; pi3++) { bestResiduals[pi3] = lvals[pi3] - lmean; }
+    }
+
+    // ── Fallback：從原圖周圍四個候選區域採樣，取標準差最高（紋理最豐富）的區域 ──
+    if (!bestResiduals) {
+      var PAD = 4; // 間隔原盒邊緣幾像素再取樣
+      var SW = Math.min(w, 80), SH = Math.min(h, 80); // 採樣塊最大 80×80
+      var candidates = [
+        // 上方
+        { sx: x, sy: Math.max(0, y - SH - PAD), sw: Math.min(SW, w), sh: Math.min(SH, y - PAD) },
+        // 下方
+        { sx: x, sy: Math.min(imgH - 1, y + h + PAD), sw: Math.min(SW, w), sh: Math.min(SH, imgH - (y + h + PAD)) },
+        // 左方
+        { sx: Math.max(0, x - SW - PAD), sy: y, sw: Math.min(SW, x - PAD), sh: Math.min(SH, h) },
+        // 右方
+        { sx: Math.min(imgW - 1, x + w + PAD), sy: y, sw: Math.min(SW, imgW - (x + w + PAD)), sh: Math.min(SH, h) }
+      ];
+      for (var ci = 0; ci < candidates.length; ci++) {
+        var c = candidates[ci];
+        if (c.sw < 4 || c.sh < 4 || c.sx < 0 || c.sy < 0 || c.sx + c.sw > imgW || c.sy + c.sh > imgH) continue;
+        var sd = origCtx2.getImageData(c.sx, c.sy, c.sw, c.sh).data;
+        // 計算亮度均值
+        var lsum = 0, cnt = c.sw * c.sh;
+        var lvals = new Float32Array(cnt);
+        for (var pi = 0; pi < cnt; pi++) {
+          var L = 0.299 * sd[pi*4] + 0.587 * sd[pi*4+1] + 0.114 * sd[pi*4+2];
+          lvals[pi] = L; lsum += L;
+        }
+        var lmean = lsum / cnt;
+        // 計算標準差
+        var vsum = 0;
+        for (var pi2 = 0; pi2 < cnt; pi2++) { var d = lvals[pi2] - lmean; vsum += d * d; }
+        var std = Math.sqrt(vsum / cnt);
+        if (std > bestStd) {
+          bestStd = std;
+          bestW = c.sw; bestH = c.sh;
+          // 計算殘差（紋理pattern = 亮度 - 均值）
+          bestResiduals = new Float32Array(cnt);
+          for (var pi3 = 0; pi3 < cnt; pi3++) { bestResiduals[pi3] = lvals[pi3] - lmean; }
+        }
       }
     }
 
