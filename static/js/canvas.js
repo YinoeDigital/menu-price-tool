@@ -140,7 +140,10 @@ var Canvas = (function() {
   function toggleMaskMode() {
     isMaskMode = !isMaskMode;
     var btn = document.getElementById('btnMaskDraw');
-    if (btn) btn.classList.toggle('active', isMaskMode);
+    if (btn) {
+      btn.classList.toggle('active', isMaskMode);
+      btn.textContent = isMaskMode ? '拖拉繪製遮罩…' : '覆蓋遮罩';
+    }
     if (mc) mc.style.cursor = isMaskMode ? 'crosshair' : 'default';
     if (typeof App !== 'undefined') {
       App.setSt(isMaskMode
@@ -154,7 +157,10 @@ var Canvas = (function() {
     if (!isMaskMode) return;
     isMaskMode = false;
     var btn = document.getElementById('btnMaskDraw');
-    if (btn) btn.classList.remove('active');
+    if (btn) {
+      btn.classList.remove('active');
+      btn.textContent = '覆蓋遮罩';
+    }
     if (mc) mc.style.cursor = 'default';
     if (typeof App !== 'undefined') App.setSt('✅ 遮罩已繪製，按 Tab 可繼續框選數字');
   }
