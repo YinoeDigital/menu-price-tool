@@ -890,13 +890,21 @@ var App = (function() {
       var origC3 = document.createElement('canvas');
       origC3.width = img.width; origC3.height = img.height;
       origC3.getContext('2d').drawImage(img, 0, 0);
+      // ① 邊緣融合
       for (var ei = 0; ei < boxes.length; ei++) {
         blendBoxEdge(oc, off, origC3, boxes[ei]);
-        addGrainToBox(oc, boxes[ei], origC3);
       }
-      // 疊加文字陰影效果（與顯示端一致）
+      // ② 文字陰影渲染（先畫文字）
       for (var _ei2 = 0; _ei2 < boxes.length; _ei2++) {
         _renderTextWithShadow(oc, boxes[_ei2]);
+      }
+      // ③ 顆粒紋理（文字之後才疊加，確保新文字也帶紙張紋理）
+      for (var _ei3 = 0; _ei3 < boxes.length; _ei3++) {
+        addGrainToBox(oc, boxes[_ei3], origC3);
+      }
+      // ④ 墨水顆粒通道
+      for (var _ei4 = 0; _ei4 < boxes.length; _ei4++) {
+        _applyInkGrain(oc, boxes[_ei4]);
       }
     }
     var fmt = mc.dataset.fmt || 'png';
@@ -1288,14 +1296,13 @@ var App = (function() {
         // 更新掃描線位置
         scanEl.style.top = (ctop + progress * cdH) + 'px';
 
-        // 已掃到的 box 就進行邊緣融合
+        // 已掃到的 box 就進行邊緣融合（顆粒與文字留到掃描完成後統一處理）
         var canvasY = progress * canvas.height;
         for (var i = 0; i < sortedBoxes.length; i++) {
           var box = sortedBoxes[i];
           if (!done[box.id] && (box.y + box.h * 0.5) <= canvasY) {
             done[box.id] = true;
             blendBoxEdge(ctx, canvas, origC, box);
-            addGrainToBox(ctx, box, origC);
           }
         }
 
@@ -1303,9 +1310,17 @@ var App = (function() {
           requestAnimationFrame(animFrame);
         } else {
           cw.removeChild(ov);
-          // 疊加文字陰影（AI渲染最終通道，畫在已融合的 canvas 上）
+          // ① 文字陰影渲染（先畫文字）
           for (var _ti = 0; _ti < boxes.length; _ti++) {
             _renderTextWithShadow(ctx, boxes[_ti]);
+          }
+          // ② 顆粒紋理（文字渲染後才疊加，確保新文字也帶紙張紋理）
+          for (var _gi = 0; _gi < boxes.length; _gi++) {
+            addGrainToBox(ctx, boxes[_gi], origC);
+          }
+          // ③ 墨水顆粒通道（模擬印刷墨水不均勻感）
+          for (var _ii = 0; _ii < boxes.length; _ii++) {
+            _applyInkGrain(ctx, boxes[_ii]);
           }
           enhancementApplied = true;
           if (btn) {
@@ -1458,7 +1473,7 @@ var App = (function() {
         // 判斷是否為文字像素（與填充色差異大）
         var dr2 = d2[idx]-fillR2, dg2 = d2[idx+1]-fillG2, db2 = d2[idx+2]-fillB2;
         var isText = (dr2*dr2 + dg2*dg2 + db2*db2) > 4500;
-        var str = isText ? 0.30 : 1.0; // 文字像素保留 30% 紋理，背景 100%
+        var str = isText ? 0.70 : 1.0; // 文字像素 70% 紋理（文字本身也需要紙張顆粒感），背景 100%
         // tile 採樣位置
         var tx2 = px % bestW, ty2 = py % bestH;
         var n2 = bestResiduals[ty2 * bestW + tx2] * scale * str;
@@ -1468,6 +1483,51 @@ var App = (function() {
       }
     }
     ctx.putImageData(bd2, x, y);
+  }
+
+  // ── 墨水顆粒通道：對新渲染的文字像素施加細部亮度雜訊，模擬印刷墨水不均勻感 ──
+  // 需在 _renderTextWithShadow 之後呼叫，讓文字本身也帶有真實印刷質感
+  function _applyInkGrain(ctx, box) {
+    if (box.isMask) return;
+    var x = Math.round(box.x), y = Math.round(box.y);
+    var w = Math.round(box.w), h = Math.round(box.h);
+    if (w <= 2 || h <= 2) return;
+
+    var bd = ctx.getImageData(x, y, w, h);
+    var d = bd.data;
+
+    // 取框中心區域的中位數色作為填充色基準
+    var sm = Math.max(2, Math.floor(Math.min(w, h) * 0.25));
+    var rr = [], gg = [], bb = [];
+    for (var sy = sm; sy < h - sm; sy++) {
+      for (var sx = sm; sx < w - sm; sx++) {
+        var si = (sy * w + sx) * 4;
+        rr.push(d[si]); gg.push(d[si+1]); bb.push(d[si+2]);
+      }
+    }
+    if (!rr.length) return;
+    rr.sort(function(a,b){return a-b;});
+    gg.sort(function(a,b){return a-b;});
+    bb.sort(function(a,b){return a-b;});
+    var mid = Math.floor(rr.length / 2);
+    var fillR = rr[mid] || 220, fillG = gg[mid] || 220, fillB = bb[mid] || 220;
+
+    // 對墨水像素（文字）施加 ±6 亮度雜訊（確定性偽隨機，結果穩定不閃爍）
+    for (var py = 0; py < h; py++) {
+      for (var px = 0; px < w; px++) {
+        var idx = (py * w + px) * 4;
+        var dr = d[idx] - fillR, dg = d[idx+1] - fillG, db = d[idx+2] - fillB;
+        if ((dr*dr + dg*dg + db*db) < 2500) continue; // 非墨水像素跳過
+        // 確定性偽隨機（LCG），避免每幀閃爍
+        var seed = ((px * 1013 + py * 7919 + x * 31 + y * 97) & 0xFFFF);
+        seed = (seed * 9301 + 49297) % 233280;
+        var n = Math.round((seed / 233280 - 0.5) * 12); // ±6 亮度偏移
+        d[idx]   = Math.max(0, Math.min(255, d[idx]   + n));
+        d[idx+1] = Math.max(0, Math.min(255, d[idx+1] + n));
+        d[idx+2] = Math.max(0, Math.min(255, d[idx+2] + n));
+      }
+    }
+    ctx.putImageData(bd, x, y);
   }
 
   // 核心像素融合：對單一 box 的邊緣做 smoothstep 融合（保護文字像素）
