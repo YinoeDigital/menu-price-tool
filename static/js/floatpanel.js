@@ -311,12 +311,7 @@ var FloatPanel = (function() {
       _markAutoDetect('fpOrientLabel', true);
     }
 
-    // 字距：若 sticky 為 0 才填入（且 > 0 才有意義）
-    if (!stickyLetterSpacing && result.letterSpacing > 0) {
-      stickyLetterSpacing = result.letterSpacing;
-      document.getElementById('fpLetterSpacing').value = result.letterSpacing;
-      _markAutoDetect('fpSpacingLabel', true);
-    }
+    // 字距：不自動偵測，維持 sticky 值或使用者手動設定
   }
 
   // 在 label 旁加 / 移除 🔍 自動偵測標記
