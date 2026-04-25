@@ -9,8 +9,8 @@
 <title>菜單價格調整工具</title>
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="static/css/style.css?v=1.5.30">
-<script>var APP_VERSION = '1.5.30';</script>
+<link rel="stylesheet" href="static/css/style.css?v=1.5.31">
+<script>var APP_VERSION = '1.5.31';</script>
 </head>
 <body>
 <div class="app">
@@ -548,7 +548,7 @@
             <div class="fp-grp-sel" id="fpGrpSel"></div>
           </div>
           <div>
-            <label class="fp-lbl">數字排列方向</label>
+            <label class="fp-lbl" id="fpOrientLabel">數字排列方向</label>
             <div class="fp-or">
               <button class="fob" id="foH" onclick="FloatPanel.setOrient('horizontal')">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
@@ -581,11 +581,11 @@
             <!-- 大小 | 間距 -->
             <div class="fp-2col">
               <div>
-                <label class="fp-lbl">大小（px）</label>
+                <label class="fp-lbl" id="fpFontSizeLabel">大小（px）</label>
                 <input type="number" id="fpFontSize" placeholder="自動" min="8" max="300" style="width:100%;">
               </div>
               <div>
-                <label class="fp-lbl">間距（px）</label>
+                <label class="fp-lbl" id="fpSpacingLabel">間距（px）</label>
                 <input type="number" id="fpLetterSpacing" placeholder="0" min="-10" max="50" style="width:100%;">
               </div>
             </div>
@@ -674,7 +674,7 @@
 
 <!-- Scripts — 順序重要 -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
-<script src="static/js/canvas.js?v=1.5.30"></script>
+<script src="static/js/canvas.js?v=1.5.31"></script>
 <!-- Update Toast -->
 <div class="upd-toast" id="updToast">
   <div class="upd-icon">
@@ -695,12 +695,12 @@
   </button>
 </div>
 
-<script src="static/js/rulers.js?v=1.5.30"></script>
-<script src="static/js/fillengine.js?v=1.5.30"></script>
-<script src="static/js/groups.js?v=1.5.30"></script>
-<script src="static/js/library.js?v=1.5.30"></script>
-<script src="static/js/floatpanel.js?v=1.5.30"></script>
-<script src="static/js/app.js?v=1.5.30"></script>
+<script src="static/js/rulers.js?v=1.5.31"></script>
+<script src="static/js/fillengine.js?v=1.5.31"></script>
+<script src="static/js/groups.js?v=1.5.31"></script>
+<script src="static/js/library.js?v=1.5.31"></script>
+<script src="static/js/floatpanel.js?v=1.5.31"></script>
+<script src="static/js/app.js?v=1.5.31"></script>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
     App.init();

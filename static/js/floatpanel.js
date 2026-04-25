@@ -260,6 +260,9 @@ var FloatPanel = (function() {
     document.getElementById('fp').classList.add('open');
     setTimeout(function() { document.getElementById('fpVal').focus(); }, 260);
 
+    // ── 自動偵測字體樣式（顏色、大小、方向、字距）──
+    _applyAutoDetect(x, y, w, h);
+
     // OCR 自動偵測數字
     if (App.isOcrReady()) {
       var fpValEl = document.getElementById('fpVal');
@@ -280,6 +283,56 @@ var FloatPanel = (function() {
     } else {
       App.setSt('請在左側面板輸入原始價格數值');
     }
+  }
+
+  // 執行自動偵測並填入欄位（新框才觸發，附帶 🔍 標記）
+  function _applyAutoDetect(x, y, w, h) {
+    if (typeof App === 'undefined' || !App.autoDetectBoxStyle) return;
+    var result = App.autoDetectBoxStyle(x, y, w, h);
+    if (!result) return;
+
+    // 顏色：若 sticky 為自動（空字串）才填入，避免覆蓋使用者手動設定
+    if (!stickyFontColor && result.color) {
+      stickyFontColor = result.color;
+      setColorUI(result.color);
+      _markAutoDetect('fpColorLabel', true);
+    }
+
+    // 字體大小：若 sticky 為 0（未設定）才填入
+    if (!stickyFontSize && result.fontSize > 0) {
+      stickyFontSize = result.fontSize;
+      document.getElementById('fpFontSize').value = result.fontSize;
+      _markAutoDetect('fpFontSizeLabel', true);
+    }
+
+    // 排列方向：僅新框時套用偵測結果
+    if (result.orient) {
+      setOrient(result.orient);
+      _markAutoDetect('fpOrientLabel', true);
+    }
+
+    // 字距：若 sticky 為 0 才填入（且 > 0 才有意義）
+    if (!stickyLetterSpacing && result.letterSpacing > 0) {
+      stickyLetterSpacing = result.letterSpacing;
+      document.getElementById('fpLetterSpacing').value = result.letterSpacing;
+      _markAutoDetect('fpSpacingLabel', true);
+    }
+  }
+
+  // 在 label 旁加 / 移除 🔍 自動偵測標記
+  function _markAutoDetect(labelId, show) {
+    var el = document.getElementById(labelId);
+    if (!el) return;
+    // 移除舊標記
+    var old = el.querySelector('.auto-detect-badge');
+    if (old) old.parentNode.removeChild(old);
+    if (!show) return;
+    var badge = document.createElement('span');
+    badge.className = 'auto-detect-badge';
+    badge.title = '根據框選區域原圖自動偵測，可手動修改';
+    badge.style.cssText = 'font-size:9px;color:var(--gmd);margin-left:3px;vertical-align:middle;cursor:help;';
+    badge.textContent = '🔍';
+    el.appendChild(badge);
   }
 
   function openEdit(box) {

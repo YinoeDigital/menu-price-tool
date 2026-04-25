@@ -278,6 +278,130 @@ var App = (function() {
     return 'rgb(' + rs[mid] + ',' + gs[mid] + ',' + bs[mid] + ')';
   }
 
+  // ── 自動偵測框選區域的文字樣式（顏色、字體大小、排列方向、字距）──
+  function _autoDetectBoxStyle(x, y, w, h) {
+    var origCtx = _getOrigCtx();
+    if (!origCtx) return null;
+    var imgEl = Canvas.getImage();
+    if (!imgEl) return null;
+
+    var bx = Math.max(0, Math.round(x));
+    var by = Math.max(0, Math.round(y));
+    var bw = Math.min(Math.round(w), imgEl.width  - bx);
+    var bh = Math.min(Math.round(h), imgEl.height - by);
+    if (bw < 8 || bh < 8) return null;
+
+    var data;
+    try { data = origCtx.getImageData(bx, by, bw, bh).data; } catch(e) { return null; }
+
+    // ── 1. 背景色 & 墨水色 ──
+    var samples = [];
+    for (var i = 0; i < data.length; i += 4) {
+      var l = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+      samples.push({ r: data[i], g: data[i+1], b: data[i+2], l: l });
+    }
+    var lums = samples.map(function(s){ return s.l; }).sort(function(a,b){ return a-b; });
+    var medLum = lums[Math.floor(lums.length / 2)];
+    var lightBg = medLum > 128;
+    // 墨水閾值：明亮背景取最暗 15%，深色背景取最亮 15%
+    samples.sort(function(a,b){ return lightBg ? a.l-b.l : b.l-a.l; });
+    var inkCnt = Math.max(3, Math.floor(samples.length * 0.15));
+    var inkPx  = samples.slice(0, inkCnt);
+    var rs = inkPx.map(function(p){ return p.r; }).sort(function(a,b){ return a-b; });
+    var gs = inkPx.map(function(p){ return p.g; }).sort(function(a,b){ return a-b; });
+    var bs = inkPx.map(function(p){ return p.b; }).sort(function(a,b){ return a-b; });
+    var cm = Math.floor(rs.length / 2);
+    var inkColor = '#' + [rs[cm],gs[cm],bs[cm]].map(function(v){
+      return ('0'+Math.min(255,v).toString(16)).slice(-2);
+    }).join('');
+
+    // ── 2. 字體大小（掃描「暗像素帶」的高度）──
+    var inkThresh = lightBg ? (medLum * 0.55) : (medLum + (255-medLum)*0.45);
+    // 每列的暗像素數量
+    var rowDark = new Array(bh).fill(0);
+    for (var py = 0; py < bh; py++) {
+      for (var px = 0; px < bw; px++) {
+        var li = 0.299*data[(py*bw+px)*4] + 0.587*data[(py*bw+px)*4+1] + 0.114*data[(py*bw+px)*4+2];
+        if ((lightBg && li < inkThresh) || (!lightBg && li > inkThresh)) rowDark[py]++;
+      }
+    }
+    var darkRowThresh = Math.max(1, bw * 0.04); // 列中至少 4% 像素是暗色才算文字列
+    // 找連續暗列的帶狀區間
+    var bands = [], inBand = false, bandStart = 0;
+    for (var ri = 0; ri < bh; ri++) {
+      if (rowDark[ri] >= darkRowThresh) {
+        if (!inBand) { inBand = true; bandStart = ri; }
+      } else {
+        if (inBand) { bands.push(ri - bandStart); inBand = false; }
+      }
+    }
+    if (inBand) bands.push(bh - bandStart);
+    var detectedFontSize = 0;
+    if (bands.length > 0) {
+      bands.sort(function(a,b){ return b-a; });
+      var charHeightPx = bands[0]; // 最高的字元帶
+      detectedFontSize = Math.round(charHeightPx * 0.82); // px → font-size 比例
+      detectedFontSize = Math.max(8, Math.min(300, detectedFontSize));
+    }
+
+    // ── 3. 排列方向（比較水平 vs 垂直連續暗段）──
+    var hRuns = 0, hCount = 0;
+    for (var hy = 0; hy < bh; hy++) {
+      var run = 0;
+      for (var hx = 0; hx < bw; hx++) {
+        var hli = 0.299*data[(hy*bw+hx)*4] + 0.587*data[(hy*bw+hx)*4+1] + 0.114*data[(hy*bw+hx)*4+2];
+        if ((lightBg && hli < inkThresh) || (!lightBg && hli > inkThresh)) { run++; }
+        else { if (run > 2) { hRuns += run; hCount++; } run = 0; }
+      }
+      if (run > 2) { hRuns += run; hCount++; }
+    }
+    var vRuns = 0, vCount = 0;
+    for (var vx = 0; vx < bw; vx++) {
+      var vrun = 0;
+      for (var vy = 0; vy < bh; vy++) {
+        var vli = 0.299*data[(vy*bw+vx)*4] + 0.587*data[(vy*bw+vx)*4+1] + 0.114*data[(vy*bw+vx)*4+2];
+        if ((lightBg && vli < inkThresh) || (!lightBg && vli > inkThresh)) { vrun++; }
+        else { if (vrun > 2) { vRuns += vrun; vCount++; } vrun = 0; }
+      }
+      if (vrun > 2) { vRuns += vrun; vCount++; }
+    }
+    var hAvg = hCount > 0 ? hRuns/hCount : 0;
+    var vAvg = vCount > 0 ? vRuns/vCount : 0;
+    // 水平段平均長度較長 → 橫式；反之直式
+    var detectedOrient = (hAvg >= vAvg) ? 'horizontal' : 'vertical';
+
+    // ── 4. 字距（粗估：水平字元群間距）──
+    var detectedSpacing = 0;
+    if (bands.length > 0 && detectedOrient === 'horizontal') {
+      // 找中間列附近的水平字元群間距
+      var midRow = Math.floor(bh / 2);
+      var gaps = [];
+      var gapStart = -1, inChar = false;
+      var prevCharEnd = -1;
+      for (var gx = 0; gx < bw; gx++) {
+        var gli = 0.299*data[(midRow*bw+gx)*4] + 0.587*data[(midRow*bw+gx)*4+1] + 0.114*data[(midRow*bw+gx)*4+2];
+        var isDark = (lightBg && gli < inkThresh) || (!lightBg && gli > inkThresh);
+        if (isDark && !inChar) { inChar = true; if (prevCharEnd >= 0) gaps.push(gx - prevCharEnd); }
+        if (!isDark && inChar) { inChar = false; prevCharEnd = gx; }
+      }
+      if (gaps.length >= 2) {
+        gaps.sort(function(a,b){ return a-b; });
+        var medGap = gaps[Math.floor(gaps.length/2)];
+        // 字距 = 間距 - 正常字元間距（估計為字體大小的 0.1）
+        var naturalGap = detectedFontSize * 0.10;
+        detectedSpacing = Math.round(Math.max(0, medGap - naturalGap));
+        if (detectedSpacing > 30) detectedSpacing = 0; // 數值過大視為雜訊
+      }
+    }
+
+    return {
+      color:   inkColor,
+      fontSize: detectedFontSize,
+      orient:  detectedOrient,
+      letterSpacing: detectedSpacing
+    };
+  }
+
   // ── REDRAW ──
 
   // 拖曳期間單一框的 FillEngine + 文字渲染（被 dragRedraw 呼叫）
@@ -1805,6 +1929,7 @@ var App = (function() {
     applyFontToAll: applyFontToAll,
     isOcrReady: isOcrReady,
     detectPrice: detectPrice,
+    autoDetectBoxStyle: _autoDetectBoxStyle,
     enhanceQuality: enhanceQuality,
     applyMultiAlign: applyMultiAlign,
     saveState: saveState,
