@@ -542,6 +542,7 @@ var App = (function() {
     for (var i = 0; i < boxes.length; i++) {
       boxes[i]._fillCache = null;
       boxes[i]._fillCacheKey = null;
+      boxes[i]._aiDone = false; // 換圖時重置 AI 渲染狀態
     }
   }
 
@@ -785,6 +786,7 @@ var App = (function() {
     for (var i = 0; i < boxes.length; i++) {
       if (String(boxes[i].id) === String(id)) {
         Object.assign(boxes[i], changes);
+        boxes[i]._aiDone = false; // 內容變動，需重新 AI 渲染
         break;
       }
     }
@@ -1293,6 +1295,13 @@ var App = (function() {
     if (!img) { setSt('請先上傳菜單圖片'); return; }
     if (!boxes.length) { setSt('尚未設置任何價格框'); return; }
 
+    // 只處理尚未 AI 渲染的框
+    var pendingBoxes = boxes.filter(function(b) { return !b._aiDone; });
+    if (!pendingBoxes.length) {
+      setSt('✅ 所有框已完成 AI 渲染，新增或修改框後可再次執行');
+      return;
+    }
+
     var btn = document.getElementById('tbEnhance');
     if (btn) btn.disabled = true;
 
@@ -1303,8 +1312,8 @@ var App = (function() {
       if (pb) pb.classList.add('active');
     }
 
-    // Step 1：偵測垂直欄/水平列，自動套用靠右/靠上對齊
-    detectColumnAlignment();
+    // Step 1：偵測垂直欄/水平列，自動套用靠右/靠上對齊（只針對待處理框）
+    detectColumnAlignment(pendingBoxes);
 
     // Step 2：重新繪製（帶新對齊方式；會同時重置 enhancementApplied flag）
     redraw();
@@ -1313,7 +1322,7 @@ var App = (function() {
     setTimeout(function() {
       var canvas = Canvas.getCanvas();
       var ctx    = Canvas.getCtx();
-      var sortedBoxes = boxes.slice().sort(function(a, b) { return a.y - b.y; });
+      var sortedBoxes = pendingBoxes.slice().sort(function(a, b) { return a.y - b.y; });
 
       var origC = document.createElement('canvas');
       origC.width = img.width; origC.height = img.height;
@@ -1363,19 +1372,23 @@ var App = (function() {
           requestAnimationFrame(animFrame);
         } else {
           cw.removeChild(ov);
-          // ① 文字陰影渲染（先畫文字；遮罩框內部函數自行跳過）
-          for (var _ti = 0; _ti < boxes.length; _ti++) {
-            _renderTextWithShadow(ctx, boxes[_ti]);
+          // ① 文字陰影渲染（先畫文字；只處理待渲染框，遮罩框內部自行跳過）
+          for (var _ti = 0; _ti < sortedBoxes.length; _ti++) {
+            _renderTextWithShadow(ctx, sortedBoxes[_ti]);
           }
-          // ② 顆粒紋理（遮罩框只做邊緣柔化，跳過顆粒以免大面積 tile 產生異常圖案）
-          for (var _gi = 0; _gi < boxes.length; _gi++) {
-            if (boxes[_gi].isMask) continue;
-            addGrainToBox(ctx, boxes[_gi], origC);
+          // ② 顆粒紋理（遮罩框跳過，避免大面積 tile 異常）
+          for (var _gi = 0; _gi < sortedBoxes.length; _gi++) {
+            if (sortedBoxes[_gi].isMask) continue;
+            addGrainToBox(ctx, sortedBoxes[_gi], origC);
           }
           // ③ 墨水顆粒通道（遮罩框跳過）
-          for (var _ii = 0; _ii < boxes.length; _ii++) {
-            if (boxes[_ii].isMask) continue;
-            _applyInkGrain(ctx, boxes[_ii]);
+          for (var _ii = 0; _ii < sortedBoxes.length; _ii++) {
+            if (sortedBoxes[_ii].isMask) continue;
+            _applyInkGrain(ctx, sortedBoxes[_ii]);
+          }
+          // 標記本次處理的框為已完成，下次 AI 渲染跳過
+          for (var _di = 0; _di < sortedBoxes.length; _di++) {
+            sortedBoxes[_di]._aiDone = true;
           }
           enhancementApplied = true;
           if (btn) {
@@ -1383,7 +1396,10 @@ var App = (function() {
             btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI渲染';
             btn.classList.add('active');
           }
-          setSt('✅ AI渲染完成 — 自動對齊 + 邊界融合已套用，匯出時同步生效');
+          var remaining = boxes.filter(function(b){ return !b._aiDone; }).length;
+          setSt(remaining > 0
+            ? '✅ AI渲染完成（尚有 ' + remaining + ' 個新框待渲染，可再次點擊）'
+            : '✅ AI渲染完成 — 自動對齊 + 邊界融合已套用，匯出時同步生效');
         }
       }
       requestAnimationFrame(animFrame);
@@ -1391,35 +1407,36 @@ var App = (function() {
   }
 
   // ── 自動對齊偵測：垂直欄→靠右，水平列→靠上（只寫 hint，不修改 box 資料）──
-  function detectColumnAlignment() {
+  // targetBoxes：指定只偵測哪些框（預設全部）
+  function detectColumnAlignment(targetBoxes) {
     _aiAlignHints = {}; // 清除舊 hints
-    if (boxes.length < 2) return;
-    var avgW = boxes.reduce(function(s,b){return s+b.w;},0)/boxes.length;
-    var avgH = boxes.reduce(function(s,b){return s+b.h;},0)/boxes.length;
+    var refBoxes = targetBoxes || boxes;
+    if (refBoxes.length < 2) return;
+    var avgW = refBoxes.reduce(function(s,b){return s+b.w;},0)/refBoxes.length;
+    var avgH = refBoxes.reduce(function(s,b){return s+b.h;},0)/refBoxes.length;
     var X_THRESH = Math.min(80, Math.max(20, avgW * 0.5));
     var Y_THRESH = Math.min(60, Math.max(15, avgH * 0.5));
     var MIN_GRP = 2;
     var inCol = {}, inRow = {};
 
     // 找垂直欄（center-X 相近）
-    boxes.forEach(function(b) {
+    refBoxes.forEach(function(b) {
       if (inCol[b.id]) return;
       var cx = b.x + b.w / 2;
-      var grp = boxes.filter(function(b2) { return Math.abs((b2.x + b2.w / 2) - cx) < X_THRESH; });
+      var grp = refBoxes.filter(function(b2) { return Math.abs((b2.x + b2.w / 2) - cx) < X_THRESH; });
       if (grp.length >= MIN_GRP) grp.forEach(function(b2) { inCol[b2.id] = true; });
     });
 
     // 找水平列（center-Y 相近，且不在垂直欄內）
-    boxes.forEach(function(b) {
+    refBoxes.forEach(function(b) {
       if (inRow[b.id] || inCol[b.id]) return;
       var cy = b.y + b.h / 2;
-      var grp = boxes.filter(function(b2) { return !inCol[b2.id] && Math.abs((b2.y + b2.h / 2) - cy) < Y_THRESH; });
+      var grp = refBoxes.filter(function(b2) { return !inCol[b2.id] && Math.abs((b2.y + b2.h / 2) - cy) < Y_THRESH; });
       if (grp.length >= MIN_GRP) grp.forEach(function(b2) { inRow[b2.id] = true; });
     });
 
     // 寫入臨時 hints（不修改 box 資料，不影響現有框選/拖曳邏輯）
-    // 注意：只套用 verticalAlign（水平列靠上），不做 textAlign right（會造成右偏移）
-    boxes.forEach(function(box) {
+    refBoxes.forEach(function(box) {
       if (inRow[box.id] && !inCol[box.id]) {
         _aiAlignHints[box.id] = { verticalAlign: 'top' };
       }
