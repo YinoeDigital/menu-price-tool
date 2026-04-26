@@ -58,7 +58,7 @@ var App = (function() {
 
   // ── INIT ──
   function init() {
-    Canvas.init('mc', 'cw', function(x, y, w, h, isMask) {
+    Canvas.init('mc', 'cw', function(x, y, w, h, isMask, isText) {
       if (isMask) {
         // 覆蓋遮罩框：直接建立，不開 FloatPanel
         var pSrc = (typeof FillEngine !== 'undefined') ? FillEngine.getPatchSource() : null;
@@ -71,6 +71,9 @@ var App = (function() {
           value: 0, newValue: 0,
           orient: orientation
         });
+      } else if (isText) {
+        // 文字工具框：開啟文字輸入 FloatPanel
+        FloatPanel.openText(x, y, w, h);
       } else {
         FloatPanel.open(x, y, w, h);
       }
@@ -628,14 +631,18 @@ var App = (function() {
             tc = lum > 128 ? '#3D1A10' : '#FAF0E0';
           }
         }
-        var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
         var ns;
-        switch (_affix) {
-          case 'yuan':      ns = String(nv) + '元'; break;
-          case 'yuan_sp':   ns = String(nv) + ' 元'; break;
-          case 'dollar':    ns = '$' + String(nv); break;
-          case 'dollar_sp': ns = '$ ' + String(nv); break;
-          default:          ns = String(nv);
+        if (box.isTextBox) {
+          ns = box.textContent || '';
+        } else {
+          var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
+          switch (_affix) {
+            case 'yuan':      ns = String(nv) + '元'; break;
+            case 'yuan_sp':   ns = String(nv) + ' 元'; break;
+            case 'dollar':    ns = '$' + String(nv); break;
+            case 'dollar_sp': ns = '$ ' + String(nv); break;
+            default:          ns = String(nv);
+          }
         }
         var bls = (box.letterSpacing || 0) + 'px';
         var bStyle = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
@@ -691,6 +698,17 @@ var App = (function() {
           ctx.font = Math.round(10 / zoom) + 'px sans-serif';
           ctx.textAlign = 'left';
           ctx.fillText('遮罩', box.x + 2, box.y - 3 / zoom);
+        } else if (box.isTextBox) {
+          // 文字框：藍色邊框顯示
+          ctx.strokeStyle = '#2980B9'; ctx.lineWidth = lw; ctx.setLineDash([]);
+          ctx.strokeRect(box.x, box.y, box.w, box.h);
+          ctx.fillStyle = 'rgba(41,128,185,0.07)';
+          ctx.fillRect(box.x, box.y, box.w, box.h);
+          ctx.fillStyle = '#2980B9';
+          ctx.font = 'bold ' + Math.round(11 / zoom) + 'px sans-serif';
+          ctx.textAlign = 'left';
+          var _shortTxt = (box.textContent || '').substring(0, 10);
+          ctx.fillText('T  ' + _shortTxt, box.x + 2, box.y - 3 / zoom);
         } else {
           ctx.strokeStyle = bc; ctx.lineWidth = lw; ctx.setLineDash([]);
           ctx.strokeRect(box.x, box.y, box.w, box.h);
@@ -747,7 +765,7 @@ var App = (function() {
     var cnt = boxes.filter(function(b) { return !b.isMask; }).length;
     document.getElementById('pcnt').textContent = cnt;
     var rpSub = document.getElementById('rpSub');
-    if (rpSub) rpSub.textContent = '共 ' + cnt + ' 個價格框';
+    if (rpSub) rpSub.textContent = '共 ' + cnt + ' 個框';
     var el = document.getElementById('plist');
     if (!cnt) {
       el.innerHTML = '<div style="text-align:center;padding:13px;color:var(--gmd);font-size:12px;">尚未框選任何價格</div>';
@@ -756,7 +774,19 @@ var App = (function() {
     var html = '';
     for (var i = 0; i < boxes.length; i++) {
       var b = boxes[i];
-      if (b.isMask) continue; // 遮罩框不顯示在價格清單
+      if (b.isMask) continue; // 遮罩框不顯示在清單
+      if (b.isTextBox) {
+        // 文字框：藍色 T 標示，顯示文字內容
+        html += '<div class="pi" style="cursor:pointer" onclick="FloatPanel.openEdit(App.getBoxById(\'' + b.id + '\'))">';
+        html += '<div class="dot" style="background:#2980B9"></div>';
+        html += '<div class="info"><span class="val" style="color:#2980B9;font-style:normal;">T</span><span class="arr"> </span>';
+        html += '<span class="nval" style="color:#2980B9">' + (b.textContent || '（空）') + '</span>';
+        html += '<span class="otag">' + (b.orient === 'vertical' ? '直' : '橫') + '</span></div>';
+        html += '<button class="delbtn" onclick="event.stopPropagation();App.deleteBox(\'' + b.id + '\')">';
+        html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        html += '</button></div>';
+        continue;
+      }
       var nv = (b.newValue > 0) ? b.newValue : calcBoxPrice(b);
       var g = b.group ? Groups.getById(b.group) : null;
       var col = g ? g.color : '#C0392B';
@@ -887,14 +917,18 @@ var App = (function() {
           tc = lum > 128 ? '#3D1A10' : '#FAF0E0';
         }
       }
-      var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
       var ns;
-      switch (_affix) {
-        case 'yuan':      ns = String(nv) + '元'; break;
-        case 'yuan_sp':   ns = String(nv) + ' 元'; break;
-        case 'dollar':    ns = '$' + String(nv); break;
-        case 'dollar_sp': ns = '$ ' + String(nv); break;
-        default:          ns = String(nv);
+      if (box.isTextBox) {
+        ns = box.textContent || '';
+      } else {
+        var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
+        switch (_affix) {
+          case 'yuan':      ns = String(nv) + '元'; break;
+          case 'yuan_sp':   ns = String(nv) + ' 元'; break;
+          case 'dollar':    ns = '$' + String(nv); break;
+          case 'dollar_sp': ns = '$ ' + String(nv); break;
+          default:          ns = String(nv);
+        }
       }
       var bls2 = (box.letterSpacing || 0) + 'px';
       var bStyle2 = (box.bold ? 'bold ' : '') + (box.italic ? 'italic ' : '');
@@ -1184,16 +1218,20 @@ var App = (function() {
   // 三層效果：[A] 雙層繪製墨水擴散  [B] fontSize 比例 shadowBlur  [C] 細描邊筆劃飽滿感
   function _renderTextWithShadow(ctx, box) {
     if (box.isMask) return;
-    var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
     var tc = box.fontColor || _sampleInkColor(box) || '#3D1A10';
-    var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
     var ns;
-    switch (_affix) {
-      case 'yuan':      ns = String(nv) + '元'; break;
-      case 'yuan_sp':   ns = String(nv) + ' 元'; break;
-      case 'dollar':    ns = '$' + String(nv); break;
-      case 'dollar_sp': ns = '$ ' + String(nv); break;
-      default:          ns = String(nv);
+    if (box.isTextBox) {
+      ns = box.textContent || '';
+    } else {
+      var nv = (box.newValue > 0) ? box.newValue : calcBoxPrice(box);
+      var _affix = box.priceAffix || (box.showYuan ? 'yuan' : 'none');
+      switch (_affix) {
+        case 'yuan':      ns = String(nv) + '元'; break;
+        case 'yuan_sp':   ns = String(nv) + ' 元'; break;
+        case 'dollar':    ns = '$' + String(nv); break;
+        case 'dollar_sp': ns = '$ ' + String(nv); break;
+        default:          ns = String(nv);
+      }
     }
     var globalFont2 = document.getElementById('fontSel').value;
     var font = box.fontFamily || globalFont2;

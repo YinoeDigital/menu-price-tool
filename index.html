@@ -9,8 +9,8 @@
 <title>菜單價格調整工具</title>
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="static/css/style.css?v=1.5.36">
-<script>var APP_VERSION = '1.5.36';</script>
+<link rel="stylesheet" href="static/css/style.css?v=1.5.37">
+<script>var APP_VERSION = '1.5.37';</script>
 </head>
 <body>
 <div class="app">
@@ -494,7 +494,12 @@
           </button>
         </div>
         <div class="fp-body">
-          <div class="fp-2col">
+          <!-- ── T工具：自由文字輸入（預設隱藏）── -->
+          <div id="fpTextSection" style="display:none">
+            <label class="fp-lbl">文字內容</label>
+            <textarea id="fpTextContent" class="fp-input" rows="2" placeholder="輸入文字，例如：炒飯 120元" style="resize:vertical;min-height:52px;width:100%;box-sizing:border-box;font-family:inherit;line-height:1.5;"></textarea>
+          </div>
+          <div class="fp-2col" id="fpPriceValRow">
             <div>
               <label class="fp-lbl">原始價格數值</label>
               <div class="fp-val-wrap">
@@ -515,7 +520,7 @@
               </select>
             </div>
           </div>
-          <div class="fp-info">
+          <div class="fp-info" id="fpPriceInfoSection">
             <div class="fi-row"><span class="fi-lbl">框選尺寸</span><span class="fi-val" id="fpSz">—</span></div>
             <div class="fi-row"><span class="fi-lbl">套用群組</span><span class="fi-val" id="fpGrpName" style="color:var(--red)">全域</span></div>
             <div class="fi-row"><span class="fi-lbl">商家抽成</span><span class="fi-val" id="fpPct">35%</span></div>
@@ -541,7 +546,7 @@
               </label>
             </div>
           </div>
-          <div>
+          <div id="fpGroupRow">
             <div class="grp-lbl-row">
               <span class="fp-lbl">套用群組（批次百分比）</span>
               <button class="grp-help-btn" onclick="FloatPanel.showGroupGuide()" title="如何建立群組？">?</button>
@@ -687,7 +692,7 @@
 
 <!-- Scripts — 順序重要 -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
-<script src="static/js/canvas.js?v=1.5.36"></script>
+<script src="static/js/canvas.js?v=1.5.37"></script>
 <!-- Update Toast -->
 <div class="upd-toast" id="updToast">
   <div class="upd-icon">
@@ -708,12 +713,12 @@
   </button>
 </div>
 
-<script src="static/js/rulers.js?v=1.5.36"></script>
-<script src="static/js/fillengine.js?v=1.5.36"></script>
-<script src="static/js/groups.js?v=1.5.36"></script>
-<script src="static/js/library.js?v=1.5.36"></script>
-<script src="static/js/floatpanel.js?v=1.5.36"></script>
-<script src="static/js/app.js?v=1.5.36"></script>
+<script src="static/js/rulers.js?v=1.5.37"></script>
+<script src="static/js/fillengine.js?v=1.5.37"></script>
+<script src="static/js/groups.js?v=1.5.37"></script>
+<script src="static/js/library.js?v=1.5.37"></script>
+<script src="static/js/floatpanel.js?v=1.5.37"></script>
+<script src="static/js/app.js?v=1.5.37"></script>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
     App.init();

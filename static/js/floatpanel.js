@@ -18,6 +18,7 @@ var FloatPanel = (function() {
   var _pollTimer = null;
   var _pollLast = '';
   var editingId = null;
+  var _isTextBox = false; // 目前面板是否為文字工具模式
   var stickyFontSize = 0;
   var stickyRound10 = false;
   var stickyRound5 = false;
@@ -138,10 +139,57 @@ var FloatPanel = (function() {
       FloatPanel.resetColor();
     });
 
+    // fpTextContent：Escape 關閉面板
+    var tcEl = document.getElementById('fpTextContent');
+    if (tcEl) {
+      tcEl.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') reqClose();
+      });
+    }
+
     // 防止滾輪事件穿透到畫布（避免在 fp 面板內滾動時觸發畫布縮放）
     document.getElementById('fp').addEventListener('wheel', function(e) {
       e.stopPropagation();
     }, { passive: false });
+  }
+
+  // ── 文字工具模式切換（顯示/隱藏對應 UI 區塊）──
+  function _setTextMode(isText) {
+    _isTextBox = isText;
+    var priceValRow     = document.getElementById('fpPriceValRow');
+    var priceInfoSection = document.getElementById('fpPriceInfoSection');
+    var groupRow        = document.getElementById('fpGroupRow');
+    var textSection     = document.getElementById('fpTextSection');
+    if (priceValRow)      priceValRow.style.display      = isText ? 'none' : '';
+    if (priceInfoSection) priceInfoSection.style.display  = isText ? 'none' : '';
+    if (groupRow)         groupRow.style.display          = isText ? 'none' : '';
+    if (textSection)      textSection.style.display       = isText ? '' : 'none';
+  }
+
+  // ── 開啟文字工具 FloatPanel（T+拖拉後呼叫）──
+  function openText(x, y, w, h) {
+    editingId = null;
+    pendingBox = { x: x, y: y, w: w, h: h };
+    fpOrient = w > h ? 'horizontal' : 'vertical';
+    setOrient(fpOrient);
+    document.getElementById('fp').querySelector('.fp-title').textContent = '輸入文字內容';
+    document.getElementById('fpSub').textContent = '框選區域：' + Math.round(w) + '×' + Math.round(h) + ' px';
+    document.getElementById('fpSz').textContent = Math.round(w) + '×' + Math.round(h) + ' px';
+    document.getElementById('fpFontSel').value = stickyFontFamily;
+    document.getElementById('fpFontSize').value = stickyFontSize > 0 ? stickyFontSize : '';
+    document.getElementById('fpLetterSpacing').value = stickyLetterSpacing !== 0 ? stickyLetterSpacing : '';
+    setColorUI(stickyFontColor);
+    setBoldUI(stickyBold);
+    setItalicUI(stickyItalic);
+    setStrikethroughUI(stickyStrikethrough);
+    setAlignUI(stickyTextAlign);
+    document.getElementById('fpTextContent').value = '';
+    document.getElementById('fpTextContent').classList.remove('err');
+    _setTextMode(true);
+    document.getElementById('fp').classList.add('open');
+    setTimeout(function() { document.getElementById('fpTextContent').focus(); }, 260);
+    _applyAutoDetect(x, y, w, h);
+    App.setSt('請在左側面板輸入文字內容');
   }
 
   function onFontChange() {
@@ -338,6 +386,38 @@ var FloatPanel = (function() {
       });
       return;
     }
+    // 文字框：開啟文字編輯模式
+    if (box.isTextBox) {
+      currentBox = box;
+      editingId = box.id;
+      pendingBox = { x: box.x, y: box.y, w: box.w, h: box.h };
+      fpOrient = box.orient || 'vertical';
+      setOrient(fpOrient);
+      document.getElementById('fp').querySelector('.fp-title').textContent = '編輯文字內容';
+      document.getElementById('fpSub').textContent = '框選區域：' + Math.round(box.w) + '×' + Math.round(box.h) + ' px';
+      document.getElementById('fpSz').textContent = Math.round(box.w) + '×' + Math.round(box.h) + ' px';
+      document.getElementById('fpFontSel').value = box.fontFamily || stickyFontFamily;
+      document.getElementById('fpFontSize').value = (box.fontSize > 0) ? box.fontSize : '';
+      var _eLs = box.letterSpacing !== undefined ? box.letterSpacing : stickyLetterSpacing;
+      document.getElementById('fpLetterSpacing').value = _eLs !== 0 ? _eLs : '';
+      setColorUI(box.fontColor || stickyFontColor || '');
+      setBoldUI(box.bold !== undefined ? box.bold : stickyBold);
+      setItalicUI(box.italic !== undefined ? box.italic : stickyItalic);
+      setStrikethroughUI(box.strikethrough !== undefined ? box.strikethrough : stickyStrikethrough);
+      setAlignUI(box.textAlign || stickyTextAlign);
+      document.getElementById('fpTextContent').value = box.textContent || '';
+      document.getElementById('fpTextContent').classList.remove('err');
+      _setTextMode(true);
+      document.getElementById('fp').classList.add('open');
+      setTimeout(function() {
+        var tc = document.getElementById('fpTextContent');
+        tc.focus(); tc.select();
+      }, 260);
+      App.setSt('編輯文字框內容');
+      return;
+    }
+    // 價格框：重置為價格模式
+    _setTextMode(false);
     currentBox = box;
     editingId = box.id;
     pendingBox = { x: box.x, y: box.y, w: box.w, h: box.h };
@@ -392,6 +472,7 @@ var FloatPanel = (function() {
 
   function close() {
     if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+    _setTextMode(false); // 重置文字工具模式 UI
     document.getElementById('fp').classList.remove('open');
     document.getElementById('fp').querySelector('.fp-title').textContent = '輸入價格資訊';
     pendingBox = null;
@@ -400,6 +481,61 @@ var FloatPanel = (function() {
   }
 
   function confirm() {
+    // ── 文字工具模式：儲存 textContent ──
+    if (_isTextBox) {
+      var textContent = document.getElementById('fpTextContent').value;
+      if (!textContent.trim()) {
+        document.getElementById('fpTextContent').classList.add('err');
+        document.getElementById('fpTextContent').focus();
+        return;
+      }
+      if (!pendingBox) return;
+      stickyFontFamily = document.getElementById('fpFontSel').value;
+      document.getElementById('fontSel').value = stickyFontFamily;
+      var _tFsInput = parseInt(document.getElementById('fpFontSize').value);
+      var _tFontSize = (_tFsInput > 0) ? _tFsInput : 0;
+      stickyFontSize = _tFontSize;
+      var _tLsInput = parseFloat(document.getElementById('fpLetterSpacing').value);
+      var _tLetterSpacing = isNaN(_tLsInput) ? 0 : _tLsInput;
+      stickyLetterSpacing = _tLetterSpacing;
+      var _tBold = document.getElementById('fpBold').classList.contains('active');
+      stickyBold = _tBold;
+      var _tItalic = document.getElementById('fpItalic').classList.contains('active');
+      stickyItalic = _tItalic;
+      var _tStrike = document.getElementById('fpStrike').classList.contains('active');
+      stickyStrikethrough = _tStrike;
+      var _tFontColor = stickyFontColor;
+      var _tTextAlign = stickyTextAlign;
+      var _tMode = (typeof FillEngine !== 'undefined') ? FillEngine.getMode() : 'autofill';
+      if (editingId !== null) {
+        App.updateBox(editingId, {
+          isTextBox: true, textContent: textContent,
+          orient: fpOrient, fontSize: _tFontSize, fontColor: _tFontColor,
+          fontFamily: stickyFontFamily, letterSpacing: _tLetterSpacing,
+          bold: _tBold, italic: _tItalic, strikethrough: _tStrike, textAlign: _tTextAlign
+        });
+        App.setSt('已更新文字框');
+      } else {
+        App.addBox({
+          id: Date.now() + '' + Math.floor(Math.random() * 10000),
+          x: pendingBox.x, y: pendingBox.y, w: pendingBox.w, h: pendingBox.h,
+          isTextBox: true, textContent: textContent,
+          orient: fpOrient, fontSize: _tFontSize, fontColor: _tFontColor,
+          fontFamily: stickyFontFamily, letterSpacing: _tLetterSpacing,
+          bold: _tBold, italic: _tItalic, strikethrough: _tStrike, textAlign: _tTextAlign,
+          fillMode: _tMode,
+          patchSource: (_tMode === 'patch' && typeof FillEngine !== 'undefined') ? FillEngine.getPatchSource() : null
+        });
+        App.setSt('已新增文字框：' + textContent);
+      }
+      document.getElementById('fp').classList.remove('open');
+      _setTextMode(false);
+      pendingBox = null;
+      editingId = null;
+      return;
+    }
+
+    // ── 價格模式 ──
     var v = parseFloat(stripCommas(document.getElementById('fpVal').value));
     if (!v || v <= 0) {
       document.getElementById('fpVal').classList.add('err');
@@ -644,6 +780,7 @@ var FloatPanel = (function() {
   return {
     init: init,
     open: open,
+    openText: openText,
     openEdit: openEdit,
     reqClose: reqClose,
     nudgeButtons: nudgeButtons,

@@ -799,7 +799,7 @@ var Canvas = (function() {
 
     var _wasMask = isMaskMode;
     var _wasText = isTextMode;
-    if (onBoxDraw) onBoxDraw(x, y, w, h, _wasMask);
+    if (onBoxDraw) onBoxDraw(x, y, w, h, _wasMask, _wasText);
     if (_wasMask) exitMaskMode();
     if (_wasText) exitTextMode();
   }
@@ -882,7 +882,7 @@ var Canvas = (function() {
         } else if (!document.getElementById('fp').classList.contains('open') || isMaskMode || isTextMode) {
           var _wWasMask = isMaskMode;
           var _wWasText = isTextMode;
-          if (onBoxDraw) onBoxDraw(x, y, w, h, _wWasMask);
+          if (onBoxDraw) onBoxDraw(x, y, w, h, _wWasMask, _wWasText);
           if (_wWasMask) exitMaskMode();
           if (_wWasText) exitTextMode();
         }
