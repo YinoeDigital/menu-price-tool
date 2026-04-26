@@ -90,7 +90,24 @@ var Canvas = (function() {
           e.preventDefault();
         }
       }
+      // T 鍵：切換文字工具模式（焦點不在輸入框時）
+      if (e.code === 'KeyT') {
+        var tagT = document.activeElement ? document.activeElement.tagName : '';
+        if (tagT !== 'INPUT' && tagT !== 'TEXTAREA' && tagT !== 'SELECT') {
+          toggleTextMode();
+          e.preventDefault();
+        }
+      }
       if (e.code === 'Escape') {
+        // 優先退出文字工具模式
+        if (isTextMode) {
+          isTextMode = false;
+          var btnTT = document.getElementById('tbTextTool');
+          if (btnTT) btnTT.classList.remove('active');
+          if (mc) mc.style.cursor = 'default';
+          if (typeof App !== 'undefined') App.setSt('');
+          return;
+        }
         var fp = document.getElementById('fp');
         if (fp && fp.classList.contains('open')) {
           if (typeof FloatPanel !== 'undefined') FloatPanel.reqClose();
@@ -430,7 +447,7 @@ var Canvas = (function() {
     // FillEngine patch check
     var patchSelecting = typeof FillEngine !== 'undefined' && FillEngine.isPatchSelecting();
 
-    if (!patchSelecting && document.getElementById('fp').classList.contains('open')) return;
+    if (!patchSelecting && !isMaskMode && !isTextMode && document.getElementById('fp').classList.contains('open')) return;
 
     if (typeof FillEngine !== 'undefined' &&
         FillEngine.getMode() === 'patch' &&
@@ -446,8 +463,8 @@ var Canvas = (function() {
       return;
     }
 
-    // 3. Tab 按住 → 繪框模式；patch 選取中或遮罩模式也直接進入繪框（不需快捷鍵）
-    if (tabHeld || patchSelecting || isMaskMode) {
+    // 3. Tab 按住 → 繪框模式；patch 選取中、遮罩模式或文字工具模式也直接進入繪框
+    if (tabHeld || patchSelecting || isMaskMode || isTextMode) {
       startX = p.x; startY = p.y;
       drawing = true;
       curBox = { x: p.x, y: p.y, w: 0, h: 0 };
@@ -709,15 +726,17 @@ var Canvas = (function() {
           if (selectedIds.length > 0) showAlignBar(sx, sy, sx + sw, sy + sh);
           else App.redraw();
         } else {
-          // 小移動 = 點擊 → 嘗試開啟編輯
+          // 小移動 = 點擊 → 嘗試開啟編輯（T 模式下跳過，避免觸發遮罩刪除 dialog）
           App.redraw();
-          var clickBoxes = App.getBoxes();
-          var cx = selStartC.x, cy = selStartC.y;
-          for (var ci = clickBoxes.length - 1; ci >= 0; ci--) {
-            var cb = clickBoxes[ci];
-            if (cx >= cb.x && cx <= cb.x + cb.w && cy >= cb.y && cy <= cb.y + cb.h) {
-              FloatPanel.openEdit(cb);
-              return;
+          if (!isTextMode) {
+            var clickBoxes = App.getBoxes();
+            var cx = selStartC.x, cy = selStartC.y;
+            for (var ci = clickBoxes.length - 1; ci >= 0; ci--) {
+              var cb = clickBoxes[ci];
+              if (cx >= cb.x && cx <= cb.x + cb.w && cy >= cb.y && cy <= cb.y + cb.h) {
+                FloatPanel.openEdit(cb);
+                return;
+              }
             }
           }
         }
@@ -750,7 +769,7 @@ var Canvas = (function() {
         dragBox.x = dragOrigX;
         dragBox.y = dragOrigY;
         App.redraw();
-        FloatPanel.openEdit(dragBox);
+        if (!isTextMode) FloatPanel.openEdit(dragBox); // T 模式下不觸發編輯
       } else {
         // 狀態已在 dragStart 時存入，跳過重複 saveState
         App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y }, true);
@@ -841,7 +860,7 @@ var Canvas = (function() {
         dragBox.x = dragOrigX;
         dragBox.y = dragOrigY;
         App.redraw();
-        FloatPanel.openEdit(dragBox);
+        if (!isTextMode) FloatPanel.openEdit(dragBox); // T 模式下不觸發編輯
       } else {
         App.updateBox(dragBox.id, { x: dragBox.x, y: dragBox.y }, true); // skipHistory
       }
