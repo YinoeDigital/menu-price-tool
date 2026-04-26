@@ -675,3 +675,43 @@ canvas.ruler-v{display:block;width:20px;cursor:e-resize;background:#ebebeb;borde
   0%,100%{box-shadow:0 0 0 3px var(--red),0 0 0 6px rgba(192,57,43,0.2);}
   50%{box-shadow:0 0 0 4px var(--red),0 0 0 10px rgba(192,57,43,0.0);}
 }
+
+/* ── 右側工具列（Adobe 式垂直工具群）── */
+#rightToolbar {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 7px;
+  background: var(--wh);
+  border: 1px solid var(--glt);
+  border-right: none;
+  border-radius: 10px 0 0 10px;
+  box-shadow: -3px 0 12px rgba(0,0,0,0.08);
+  z-index: 60;
+}
+.rt-btn {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--glt);
+  border-radius: 7px;
+  background: var(--wh);
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.rt-btn:hover {
+  background: var(--cream);
+  border-color: var(--red);
+}
+.rt-btn.active {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}

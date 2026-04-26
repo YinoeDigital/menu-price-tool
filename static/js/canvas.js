@@ -136,6 +136,30 @@ var Canvas = (function() {
     }, true);
   }
 
+  // ── 文字工具模式（T 鍵 / 右側工具列）──
+  var isTextMode = false;
+
+  function toggleTextMode() {
+    isTextMode = !isTextMode;
+    var btn = document.getElementById('tbTextTool');
+    if (btn) btn.classList.toggle('active', isTextMode);
+    if (mc) mc.style.cursor = isTextMode ? 'crosshair' : 'default';
+    if (typeof App !== 'undefined') {
+      App.setSt(isTextMode
+        ? '文字工具：拖拉繪製文字框，輸入新品項名稱與價格，繪製後自動退出'
+        : '');
+    }
+  }
+
+  function exitTextMode() {
+    if (!isTextMode) return;
+    isTextMode = false;
+    var btn = document.getElementById('tbTextTool');
+    if (btn) btn.classList.remove('active');
+    if (mc) mc.style.cursor = 'default';
+    if (typeof App !== 'undefined') App.setSt('✅ 文字框已建立，請在左側填入品項資訊');
+  }
+
   // ── 覆蓋遮罩模式切換 ──
   function toggleMaskMode() {
     isMaskMode = !isMaskMode;
@@ -755,8 +779,10 @@ var Canvas = (function() {
     }
 
     var _wasMask = isMaskMode;
+    var _wasText = isTextMode;
     if (onBoxDraw) onBoxDraw(x, y, w, h, _wasMask);
     if (_wasMask) exitMaskMode();
+    if (_wasText) exitTextMode();
   }
 
   function onWindowMouseUp(e) {
@@ -834,10 +860,12 @@ var Canvas = (function() {
         if (typeof FillEngine !== 'undefined' && FillEngine.getMode() === 'patch' && FillEngine.isPatchSelecting()) {
           FillEngine.setPatchSource({ x: x, y: y, w: w, h: h });
           App.redraw();
-        } else if (!document.getElementById('fp').classList.contains('open') || isMaskMode) {
+        } else if (!document.getElementById('fp').classList.contains('open') || isMaskMode || isTextMode) {
           var _wWasMask = isMaskMode;
+          var _wWasText = isTextMode;
           if (onBoxDraw) onBoxDraw(x, y, w, h, _wWasMask);
           if (_wWasMask) exitMaskMode();
+          if (_wWasText) exitTextMode();
         }
       } else {
         App.redraw();
@@ -932,6 +960,8 @@ var Canvas = (function() {
     clearMultiSel: clearMultiSel,
     toggleMaskMode: toggleMaskMode,
     exitMaskMode: exitMaskMode,
+    toggleTextMode: toggleTextMode,
+    exitTextMode: exitTextMode,
     isDrawing: function() { return drawing; }
   };
 })();
