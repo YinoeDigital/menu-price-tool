@@ -941,20 +941,22 @@ var App = (function() {
       var origC3 = document.createElement('canvas');
       origC3.width = img.width; origC3.height = img.height;
       origC3.getContext('2d').drawImage(img, 0, 0);
-      // ① 邊緣融合
+      // ① 邊緣融合（所有框皆執行）
       for (var ei = 0; ei < boxes.length; ei++) {
         blendBoxEdge(oc, off, origC3, boxes[ei]);
       }
-      // ② 文字陰影渲染（先畫文字）
+      // ② 文字陰影渲染（遮罩框內部函數自行跳過）
       for (var _ei2 = 0; _ei2 < boxes.length; _ei2++) {
         _renderTextWithShadow(oc, boxes[_ei2]);
       }
-      // ③ 顆粒紋理（文字之後才疊加，確保新文字也帶紙張紋理）
+      // ③ 顆粒紋理（遮罩框跳過，避免大面積 tile 異常）
       for (var _ei3 = 0; _ei3 < boxes.length; _ei3++) {
+        if (boxes[_ei3].isMask) continue;
         addGrainToBox(oc, boxes[_ei3], origC3);
       }
-      // ④ 墨水顆粒通道
+      // ④ 墨水顆粒通道（遮罩框跳過）
       for (var _ei4 = 0; _ei4 < boxes.length; _ei4++) {
+        if (boxes[_ei4].isMask) continue;
         _applyInkGrain(oc, boxes[_ei4]);
       }
     }
@@ -1361,16 +1363,18 @@ var App = (function() {
           requestAnimationFrame(animFrame);
         } else {
           cw.removeChild(ov);
-          // ① 文字陰影渲染（先畫文字）
+          // ① 文字陰影渲染（先畫文字；遮罩框內部函數自行跳過）
           for (var _ti = 0; _ti < boxes.length; _ti++) {
             _renderTextWithShadow(ctx, boxes[_ti]);
           }
-          // ② 顆粒紋理（文字渲染後才疊加，確保新文字也帶紙張紋理）
+          // ② 顆粒紋理（遮罩框只做邊緣柔化，跳過顆粒以免大面積 tile 產生異常圖案）
           for (var _gi = 0; _gi < boxes.length; _gi++) {
+            if (boxes[_gi].isMask) continue;
             addGrainToBox(ctx, boxes[_gi], origC);
           }
-          // ③ 墨水顆粒通道（模擬印刷墨水不均勻感）
+          // ③ 墨水顆粒通道（遮罩框跳過）
           for (var _ii = 0; _ii < boxes.length; _ii++) {
+            if (boxes[_ii].isMask) continue;
             _applyInkGrain(ctx, boxes[_ii]);
           }
           enhancementApplied = true;
