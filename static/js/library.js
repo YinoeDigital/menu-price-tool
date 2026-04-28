@@ -129,13 +129,19 @@ var Library = (function() {
     _idbGet(id, function(data) { cb(data || null); }); // 跨 session：從 IDB 讀取
   }
 
+  // 24 小時制時間，全形冒號，不含上午/下午
+  function _fmtTime(d) {
+    return String(d.getHours()).padStart(2, '0') + '：' + String(d.getMinutes()).padStart(2, '0');
+  }
+
   function saveEntry(imgB64, imgObj, boxes, groups, fontSel, orientation, globalPct, fmtStr, nameStr) {
     var nm = nameStr.replace(/\.[^.]+$/, '');
+    var _now = new Date();
     var entry = {
       id         : 'lib' + Date.now(),
       name       : nm,
-      date       : new Date().toLocaleDateString('zh-TW'),
-      time       : new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
+      date       : _now.toLocaleDateString('zh-TW'),
+      time       : _fmtTime(_now),
       font       : fontSel,
       orientation: orientation,
       globalPct  : globalPct,
@@ -211,8 +217,9 @@ var Library = (function() {
     var newEntry = JSON.parse(JSON.stringify(src)); // 深複製，imgData（若有）一起複製至記憶體
     newEntry.id       = 'lib' + Date.now() + '' + Math.round(Math.random() * 1e4);
     newEntry.name     = src.name + '_複本';
-    newEntry.date     = new Date().toLocaleDateString('zh-TW');
-    newEntry.time     = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    var _dup = new Date();
+    newEntry.date     = _dup.toLocaleDateString('zh-TW');
+    newEntry.time     = _fmtTime(_dup);
     newEntry.savedAt  = Date.now();
     newEntry.expireAt = null;
     library.unshift(newEntry);
