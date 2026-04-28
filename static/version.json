@@ -1,4 +1,4 @@
 {
-  "version": "1.5.37",
-  "note": "T工具文字框：T+拖拉開啟文字輸入 FloatPanel，isTextBox 框直接渲染 textContent，不走價格計算"
+  "version": "1.5.39",
+  "note": "修正「重新整理」按鈕無法繞過瀏覽器快取的問題"
 }

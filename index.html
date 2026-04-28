@@ -9,8 +9,8 @@
 <title>菜單價格調整工具</title>
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="static/css/style.css?v=1.5.38">
-<script>var APP_VERSION = '1.5.38';</script>
+<link rel="stylesheet" href="static/css/style.css?v=1.5.39">
+<script>var APP_VERSION = '1.5.39';</script>
 </head>
 <body>
 <div class="app">
@@ -690,7 +690,7 @@
 
 <!-- Scripts — 順序重要 -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
-<script src="static/js/canvas.js?v=1.5.38"></script>
+<script src="static/js/canvas.js?v=1.5.39"></script>
 <!-- Update Toast -->
 <div class="upd-toast" id="updToast">
   <div class="upd-icon">
@@ -703,7 +703,7 @@
     <div class="upd-title">有新版本可用</div>
     <div class="upd-sub" id="updNote">請重新整理頁面以更新</div>
   </div>
-  <button class="upd-btn" onclick="location.reload(true)">重新整理</button>
+  <button class="upd-btn" onclick="window.location.replace(location.pathname+'?_cb='+Date.now())">重新整理</button>
   <button class="upd-close" onclick="document.getElementById('updToast').classList.remove('show')" title="關閉">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -711,14 +711,18 @@
   </button>
 </div>
 
-<script src="static/js/rulers.js?v=1.5.38"></script>
-<script src="static/js/fillengine.js?v=1.5.38"></script>
-<script src="static/js/groups.js?v=1.5.38"></script>
-<script src="static/js/library.js?v=1.5.38"></script>
-<script src="static/js/floatpanel.js?v=1.5.38"></script>
-<script src="static/js/app.js?v=1.5.38"></script>
+<script src="static/js/rulers.js?v=1.5.39"></script>
+<script src="static/js/fillengine.js?v=1.5.39"></script>
+<script src="static/js/groups.js?v=1.5.39"></script>
+<script src="static/js/library.js?v=1.5.39"></script>
+<script src="static/js/floatpanel.js?v=1.5.39"></script>
+<script src="static/js/app.js?v=1.5.39"></script>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
+    // 若由「重新整理」按鈕帶著 ?_cb= 參數進來，立即清掉 URL
+    if (location.search.indexOf('_cb=') !== -1) {
+      history.replaceState(null, '', location.pathname);
+    }
     App.init();
     Rulers.init();
     checkVersion();
