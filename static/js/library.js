@@ -51,20 +51,27 @@ var Library = (function() {
   // ── localStorage（只存 metadata + 縮圖，不存完整圖片）──
   function _loadMeta() {
     try { library = JSON.parse(localStorage.getItem('mlib') || '[]'); } catch(e) { library = []; }
-    // 向下相容：移除舊版 imgData 欄位，改由 IndexedDB 提供
+    // 向下相容：舊版 imgData 保留在記憶體（作為當次 session 的快速路徑），
+    // 同時非同步寫入 IndexedDB 以支援跨 session 存取。
+    // 注意：不從記憶體刪除 imgData，避免 IDB 尚未完成時 fallback 失效。
     library.forEach(function(e) {
       if (e.imgData) {
-        // 遷移到 IndexedDB（非同步，不阻塞）
-        _idbPut(e.id, e.imgData, function() {});
-        delete e.imgData;
+        _idbPut(e.id, e.imgData, null); // 非同步遷移，不等待
       }
     });
     _purgeExpired();
   }
 
   function _saveMeta() {
+    // 寫入 localStorage 時剝除 imgData（避免 quota 爆滿）
+    // imgData 在當次 session 仍保留於記憶體中作快速路徑，跨 session 靠 IndexedDB
     try {
-      localStorage.setItem('mlib', JSON.stringify(library));
+      var toSave = library.map(function(e) {
+        var c = Object.assign({}, e);
+        delete c.imgData;
+        return c;
+      });
+      localStorage.setItem('mlib', JSON.stringify(toSave));
     } catch(e) {
       if (typeof App !== 'undefined') App.setSt('⚠ 儲存空間不足，部分資料未存入');
     }
@@ -113,14 +120,13 @@ var Library = (function() {
     return null;
   }
 
-  // 非同步取得圖片（優先 IndexedDB，向下相容 imgData）
+  // 取得圖片：
+  //   快速路徑（同 session）→ entry.imgData（記憶體，儲存或遷移後立即可用）
+  //   慢速路徑（跨 session）→ IndexedDB（非同步）
   function getImage(id, cb) {
-    _idbGet(id, function(data) {
-      if (data) { cb(data); return; }
-      // fallback（舊版遷移前或遷移失敗）
-      var e = getById(id);
-      cb(e && e.imgData ? e.imgData : null);
-    });
+    var e = getById(id);
+    if (e && e.imgData) { cb(e.imgData); return; } // 同 session 快速路徑，不需等 IDB
+    _idbGet(id, function(data) { cb(data || null); }); // 跨 session：從 IDB 讀取
   }
 
   function saveEntry(imgB64, imgObj, boxes, groups, fontSel, orientation, globalPct, fmtStr, nameStr) {
@@ -155,6 +161,13 @@ var Library = (function() {
       entry.thumb = th.toDataURL('image/jpeg', 0.6);
     }
 
+    // 圖片：記憶體中保留（快速路徑），同時非同步寫入 IDB（跨 session 持久化）
+    // _saveMeta 寫入 localStorage 時會自動剝除 imgData，不占 quota
+    if (imgB64) {
+      entry.imgData = imgB64;          // 記憶體快速路徑（同 session 立即可用）
+      _idbPut(entry.id, imgB64, null); // IDB 持久化（跨 session）
+    }
+
     // 同名檢查（更新）
     var ex = -1;
     for (var i = 0; i < library.length; i++) {
@@ -162,11 +175,9 @@ var Library = (function() {
     }
 
     if (ex >= 0) {
-      entry.id = library[ex].id; // 沿用舊 id，讓 IndexedDB 覆寫同一筆
-      if (imgB64) _idbPut(entry.id, imgB64);
+      entry.id = library[ex].id; // 沿用舊 id，讓 IDB 覆寫同一筆
       return { existing: true, entry: entry, index: ex };
     } else {
-      if (imgB64) _idbPut(entry.id, imgB64);
       library.unshift(entry);
       _checkLimit();
       _saveMeta();
@@ -176,9 +187,13 @@ var Library = (function() {
   }
 
   function updateEntry(index, entry) {
+    // 若 entry 帶有 imgData（從 saveEntry 傳入），寫入 IDB 並保留在記憶體
+    if (entry.imgData) {
+      _idbPut(entry.id, entry.imgData, null);
+    }
     library[index] = entry;
     _checkLimit();
-    _saveMeta();
+    _saveMeta(); // 會自動剝除 imgData 再存入 localStorage
     render();
   }
 
@@ -189,11 +204,11 @@ var Library = (function() {
     render();
   }
 
-  // 再製：複製整筆記錄（含 IndexedDB 圖片）
+  // 再製：複製整筆記錄（含圖片）
   function duplicateEntry(id) {
     var src = getById(id);
     if (!src) return;
-    var newEntry = JSON.parse(JSON.stringify(src));
+    var newEntry = JSON.parse(JSON.stringify(src)); // 深複製，imgData（若有）一起複製至記憶體
     newEntry.id       = 'lib' + Date.now() + '' + Math.round(Math.random() * 1e4);
     newEntry.name     = src.name + '_複本';
     newEntry.date     = new Date().toLocaleDateString('zh-TW');
@@ -201,10 +216,17 @@ var Library = (function() {
     newEntry.savedAt  = Date.now();
     newEntry.expireAt = null;
     library.unshift(newEntry);
-    // 非同步複製圖片到新 id
-    _idbGet(src.id, function(imgData) {
-      if (imgData) _idbPut(newEntry.id, imgData);
-    });
+    // 確保新 id 也有 IDB 圖片（同 session 從記憶體取，跨 session 從 IDB 讀後寫）
+    if (src.imgData) {
+      _idbPut(newEntry.id, src.imgData, null);
+    } else {
+      _idbGet(src.id, function(imgData) {
+        if (imgData) {
+          newEntry.imgData = imgData; // 補回記憶體快速路徑
+          _idbPut(newEntry.id, imgData, null);
+        }
+      });
+    }
     _checkLimit();
     _saveMeta();
     render();

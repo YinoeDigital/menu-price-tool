@@ -1,4 +1,4 @@
 {
-  "version": "1.5.44",
-  "note": "匯出圖片一律轉 JPG（品質 0.92），檔名改為「菜單短名＋YYYY.MM.DD.jpg」"
+  "version": "1.5.45",
+  "note": "修正菜單庫「繼續編輯」圖片讀取失敗：同 session 記憶體快速路徑 + 跨 session IndexedDB 雙軌策略"
 }
