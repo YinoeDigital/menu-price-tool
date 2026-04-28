@@ -1020,11 +1020,14 @@ var App = (function() {
         _applyInkGrain(oc, boxes[_ei4]);
       }
     }
-    var fmt = mc.dataset.fmt || 'png';
-    var mm = { jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', png: 'image/png' };
+    // 一律匯出為 JPG（品質 0.92），檔名用菜單短名 + 當下日期
+    var baseName = (mc.dataset.name || 'menu').replace(/\.[^.]+$/, '');
+    var _d = new Date();
+    var _p = function(n) { return n < 10 ? '0' + n : '' + n; };
+    var dateStr = _d.getFullYear() + '.' + _p(_d.getMonth() + 1) + '.' + _p(_d.getDate());
     var a = document.createElement('a');
-    a.href = off.toDataURL(mm[fmt] || 'image/png', 0.95);
-    a.download = (mc.dataset.name || 'menu').replace(/\.[^.]+$/, '') + '_adjusted.' + fmt;
+    a.href = off.toDataURL('image/jpeg', 0.92);
+    a.download = baseName + dateStr + '.jpg';
     a.click();
     saveHist();
     setSt('已匯出：' + a.download);
