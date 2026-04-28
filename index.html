@@ -663,7 +663,7 @@
       <div class="sdot"></div>
       <span id="stTxt">等待上傳圖片</span>
       <span style="margin-left:auto;font-size:11px;color:var(--gmd);" id="coordTxt"></span>
-      <span class="ver-badge" id="verBadge" title="目前版本">v1.4.0</span>
+      <span class="ver-badge" id="verBadge" title="目前版本">v1.5.46</span>
     </div>
 
   </div><!-- /main -->
@@ -730,6 +730,9 @@
     if (location.search.indexOf('_cb=') !== -1) {
       history.replaceState(null, '', location.pathname);
     }
+    // badge 以 HTML 內嵌版本號初始化（即使 fetch 失敗也顯示正確值）
+    var _b = document.getElementById('verBadge');
+    if (_b) _b.textContent = 'v' + APP_VERSION;
     App.init();
     Rulers.init();
     checkVersion();
@@ -737,12 +740,14 @@
 
   function checkVersion() {
     var url = './static/version.json?t=' + Date.now();
-    fetch(url)
+    // cache:'no-store' 強制繞過瀏覽器快取，確保每次拿到最新版本號
+    fetch(url, { cache: 'no-store' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var latest = data.version || '';
         var badge = document.getElementById('verBadge');
-        if (badge) badge.textContent = 'v' + (latest || APP_VERSION);
+        // badge 永遠顯示 version.json 回傳的最新版本（fetch 成功時才覆蓋）
+        if (badge && latest) badge.textContent = 'v' + latest;
         if (latest && latest !== APP_VERSION) {
           var note = document.getElementById('updNote');
           if (note && data.note) note.textContent = '新版 v' + latest + '：' + data.note;
@@ -751,7 +756,7 @@
           }, 1500);
         }
       })
-      .catch(function() {});
+      .catch(function() { /* fetch 失敗：badge 維持 APP_VERSION，靜默處理 */ });
     // 每 5 分鐘再檢查一次
     setTimeout(checkVersion, 5 * 60 * 1000);
   }
