@@ -9,8 +9,8 @@
 <title>菜單價格調整工具</title>
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="static/css/style.css?v=1.5.41">
-<script>var APP_VERSION = '1.5.41';</script>
+<link rel="stylesheet" href="static/css/style.css?v=1.5.42">
+<script>var APP_VERSION = '1.5.42';</script>
 </head>
 <body>
 <div class="app">
@@ -378,6 +378,12 @@
               <tr><td>文字工具（新增品項框）</td><td>T</td></tr>
               <tr><td>退出文字工具 / 關閉面板</td><td>Esc</td></tr>
               <tr><td>還原字體顏色自動</td><td>雙擊色塊</td></tr>
+              <tr class="tips-mac"><td>上一步</td><td>⌘ Cmd + Z</td></tr>
+              <tr class="tips-win" style="display:none"><td>上一步</td><td>Ctrl + Z</td></tr>
+              <tr class="tips-mac"><td>下一步</td><td>⌘ Cmd + ⇧ Shift + Z</td></tr>
+              <tr class="tips-win" style="display:none"><td>下一步</td><td>Ctrl + Y</td></tr>
+              <tr class="tips-mac"><td>儲存至菜單庫</td><td>⌘ Cmd + S</td></tr>
+              <tr class="tips-win" style="display:none"><td>儲存至菜單庫</td><td>Ctrl + S</td></tr>
             </table>
           </div>
         </div>
@@ -690,7 +696,7 @@
 
 <!-- Scripts — 順序重要 -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
-<script src="static/js/canvas.js?v=1.5.41"></script>
+<script src="static/js/canvas.js?v=1.5.42"></script>
 <!-- Update Toast -->
 <div class="upd-toast" id="updToast">
   <div class="upd-icon">
@@ -711,12 +717,12 @@
   </button>
 </div>
 
-<script src="static/js/rulers.js?v=1.5.41"></script>
-<script src="static/js/fillengine.js?v=1.5.41"></script>
-<script src="static/js/groups.js?v=1.5.41"></script>
-<script src="static/js/library.js?v=1.5.41"></script>
-<script src="static/js/floatpanel.js?v=1.5.41"></script>
-<script src="static/js/app.js?v=1.5.41"></script>
+<script src="static/js/rulers.js?v=1.5.42"></script>
+<script src="static/js/fillengine.js?v=1.5.42"></script>
+<script src="static/js/groups.js?v=1.5.42"></script>
+<script src="static/js/library.js?v=1.5.42"></script>
+<script src="static/js/floatpanel.js?v=1.5.42"></script>
+<script src="static/js/app.js?v=1.5.42"></script>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
     // 若由「重新整理」按鈕帶著 ?_cb= 參數進來，立即清掉 URL

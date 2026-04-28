@@ -133,6 +133,14 @@ var Canvas = (function() {
           if (typeof App !== 'undefined') App.redo();
         }
       }
+      // Cmd+S / Ctrl+S → 儲存至菜單庫
+      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyS') {
+        var tag4 = document.activeElement ? document.activeElement.tagName : '';
+        if (tag4 !== 'INPUT' && tag4 !== 'TEXTAREA') {
+          e.preventDefault(); // 阻止瀏覽器「儲存網頁」對話框
+          if (typeof App !== 'undefined') App.saveToLib();
+        }
+      }
     });
     window.addEventListener('keyup', function(e) {
       if (e.code === 'Tab') {
