@@ -19,6 +19,7 @@ var FloatPanel = (function() {
   var _pollLast = '';
   var editingId = null;
   var _isTextBox = false; // 目前面板是否為文字工具模式
+  var _detectToken = 0;  // OCR 競態防護：每次 open() 遞增，callback 比對 token 後才套用結果
   var stickyFontSize = 0;
   var stickyRound10 = false;
   var stickyRound5 = false;
@@ -168,6 +169,7 @@ var FloatPanel = (function() {
 
   // ── 開啟文字工具 FloatPanel（T+拖拉後呼叫）──
   function openText(x, y, w, h) {
+    ++_detectToken; // 失效任何進行中的 OCR callback
     editingId = null;
     pendingBox = { x: x, y: y, w: w, h: h };
     fpOrient = w > h ? 'horizontal' : 'vertical';
@@ -311,12 +313,14 @@ var FloatPanel = (function() {
     // ── 自動偵測字體樣式（顏色、大小、方向、字距）──
     _applyAutoDetect(x, y, w, h);
 
-    // OCR 自動偵測數字
+    // OCR 自動偵測數字（帶 token 防止快速連續框選時舊結果覆蓋新面板）
+    var _myToken = ++_detectToken;
     if (App.isOcrReady()) {
       var fpValEl = document.getElementById('fpVal');
       fpValEl.placeholder = '識別中…';
       App.detectPrice(x, y, w, h, function(num) {
         fpValEl.placeholder = '例：880';
+        if (_detectToken !== _myToken) return; // 面板已重開，丟棄此過期結果
         if (num && !fpValEl.value) {
           fpValEl.value = formatCommas(num);
           fpValEl.focus();   // 確保焦點在欄位上（觸發 focus → 啟動輪詢 + select）
@@ -417,6 +421,7 @@ var FloatPanel = (function() {
       return;
     }
     // 價格框：重置為價格模式
+    ++_detectToken; // 失效任何進行中的 OCR callback
     _setTextMode(false);
     currentBox = box;
     editingId = box.id;
