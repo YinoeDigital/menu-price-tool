@@ -236,6 +236,7 @@ select:focus,input:focus{border-color:var(--red);}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .lib-meta{font-size:11px;color:var(--gmd);margin-top:2px;}
+.lib-expire{font-size:11px;color:var(--red);font-weight:500;margin-top:3px;}
 .lib-acts{display:flex;gap:5px;flex-shrink:0;}
 .lib-btn{
   width:28px;height:28px;border-radius:var(--r);

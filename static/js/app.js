@@ -1062,37 +1062,45 @@ var App = (function() {
     if (e.orientation) setOrient(e.orientation);
     document.getElementById('pctIn').value = e.globalPct || 0;
     document.getElementById('pctBadge').textContent = ((e.globalPct || 0) >= 0 ? '+' : '') + (e.globalPct || 0) + '%';
-    // restore groups
+    // 還原群組
     var savedGroups = e.groups ? JSON.parse(JSON.stringify(e.groups)) : [];
     localStorage.setItem('mgrp', JSON.stringify(savedGroups));
     Groups.render(boxes);
+    // 還原 boxes，並清除不可序列化的快取屬性（防 _fillCache:{} 假命中）
     boxes = e.boxes ? JSON.parse(JSON.stringify(e.boxes)) : [];
+    _clearBoxCaches(boxes);
+    // 清除 undo/redo（避免跨菜單污染）
+    undoStack = []; redoStack = []; _updateUndoUI();
     renderPriceList();
     Groups.renderChips(null);
-    if (e.imgData) {
-      currentImgB64 = e.imgData;
-      var i = new Image();
-      i.onload = function() {
-        _origImgCanvas = null; _origImgCtx = null; // 清除舊圖快取
-        _aiAlignHints = {};
-        _invalidateAllFillCaches();
-        Canvas.setImage(i);
-        var mc = Canvas.getCanvas();
-        mc.dataset.fmt = e.fmt || 'png';
-        mc.dataset.name = e.name + '.' + e.fmt;
-        document.getElementById('emptySt').style.display = 'none';
-        document.getElementById('cc').style.display = 'block';
-        document.getElementById('ulbl').textContent = e.name;
-        Canvas.fitToWindow();
-        redraw();
-        setSt('已從菜單庫載入：' + e.name + '（含圖片）');
-      };
-      i.src = e.imgData;
-    } else {
-      setSt('已載入座標設定，請重新上傳原始圖片「' + e.name + '」');
-      redraw();
-    }
     showTab('edit');
+    // 從 IndexedDB 非同步讀取圖片
+    Library.getImage(e.id, function(imgData) {
+      if (imgData) {
+        currentImgB64 = imgData;
+        var i = new Image();
+        i.onload = function() {
+          _origImgCanvas = null; _origImgCtx = null; // 清除舊圖快取
+          _aiAlignHints = {};
+          _invalidateAllFillCaches();
+          Canvas.setImage(i);
+          var mc = Canvas.getCanvas();
+          mc.dataset.fmt = e.fmt || 'png';
+          mc.dataset.name = e.name + '.' + (e.fmt || 'png');
+          document.getElementById('emptySt').style.display = 'none';
+          document.getElementById('cc').style.display = 'block';
+          document.getElementById('ulbl').textContent = e.name;
+          Canvas.fitToWindow();
+          redraw();
+          setSt('已從菜單庫載入：' + e.name + '（含圖片）');
+        };
+        i.src = imgData;
+      } else {
+        // 圖片不在 IndexedDB（可能已過期或未存入）→ 提示重新上傳
+        setSt('⚠ 請重新上傳原始圖片「' + e.name + '」後繼續編輯');
+        redraw();
+      }
+    });
   }
 
   function deleteFromLib(id) {

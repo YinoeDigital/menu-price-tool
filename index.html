@@ -9,8 +9,8 @@
 <title>菜單價格調整工具</title>
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="static/css/style.css?v=1.5.42">
-<script>var APP_VERSION = '1.5.42';</script>
+<link rel="stylesheet" href="static/css/style.css?v=1.5.43">
+<script>var APP_VERSION = '1.5.43';</script>
 </head>
 <body>
 <div class="app">
@@ -278,8 +278,9 @@
           <div class="lib-list" id="libList"></div>
         </div>
         <div style="font-size:11px;color:var(--gmd);line-height:1.7;background:var(--cream);border-radius:var(--r);padding:10px;border:1px solid var(--glt);">
-          圖片小於 3MB 時自動存入縮圖可直接還原。<br>
-          圖片較大時僅儲存座標，載入時需重新上傳原始圖片。
+          菜單圖片儲存於瀏覽器本機（IndexedDB），不限大小。<br>
+          最多保留 <b>10 筆</b>，超出上限的最舊菜單將在 <b>7 天後</b>自動移除。<br>
+          清除瀏覽器資料時圖片將一併刪除。
         </div>
       </div>
 
@@ -696,7 +697,7 @@
 
 <!-- Scripts — 順序重要 -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
-<script src="static/js/canvas.js?v=1.5.42"></script>
+<script src="static/js/canvas.js?v=1.5.43"></script>
 <!-- Update Toast -->
 <div class="upd-toast" id="updToast">
   <div class="upd-icon">
@@ -717,12 +718,12 @@
   </button>
 </div>
 
-<script src="static/js/rulers.js?v=1.5.42"></script>
-<script src="static/js/fillengine.js?v=1.5.42"></script>
-<script src="static/js/groups.js?v=1.5.42"></script>
-<script src="static/js/library.js?v=1.5.42"></script>
-<script src="static/js/floatpanel.js?v=1.5.42"></script>
-<script src="static/js/app.js?v=1.5.42"></script>
+<script src="static/js/rulers.js?v=1.5.43"></script>
+<script src="static/js/fillengine.js?v=1.5.43"></script>
+<script src="static/js/groups.js?v=1.5.43"></script>
+<script src="static/js/library.js?v=1.5.43"></script>
+<script src="static/js/floatpanel.js?v=1.5.43"></script>
+<script src="static/js/app.js?v=1.5.43"></script>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
     // 若由「重新整理」按鈕帶著 ?_cb= 參數進來，立即清掉 URL
