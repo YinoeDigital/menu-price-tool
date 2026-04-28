@@ -738,26 +738,35 @@
     checkVersion();
   });
 
+  var _cvFirst = true; // 是否為初次檢查（頁面剛載入）
+
   function checkVersion() {
     var url = './static/version.json?t=' + Date.now();
-    // cache:'no-store' 強制繞過瀏覽器快取，確保每次拿到最新版本號
     fetch(url, { cache: 'no-store' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var latest = data.version || '';
         var badge = document.getElementById('verBadge');
-        // badge 永遠顯示 version.json 回傳的最新版本（fetch 成功時才覆蓋）
         if (badge && latest) badge.textContent = 'v' + latest;
         if (latest && latest !== APP_VERSION) {
+          if (_cvFirst) {
+            // 初次載入偵測到版本落後 → 靜默自動 cache-bust 重新整理
+            // 使用者尚未開始編輯，直接強制取最新版本
+            _cvFirst = false;
+            window.location.replace(location.pathname + '?_cb=' + Date.now());
+            return;
+          }
+          // 後續每 5 分鐘的定期檢查 → 顯示 toast（使用者可能正在編輯，不強制中斷）
           var note = document.getElementById('updNote');
           if (note && data.note) note.textContent = '新版 v' + latest + '：' + data.note;
           setTimeout(function() {
             document.getElementById('updToast').classList.add('show');
           }, 1500);
         }
+        _cvFirst = false;
       })
-      .catch(function() { /* fetch 失敗：badge 維持 APP_VERSION，靜默處理 */ });
-    // 每 5 分鐘再檢查一次
+      .catch(function() { _cvFirst = false; /* fetch 失敗：維持 APP_VERSION */ });
+    // 每 5 分鐘定期再檢查（此時使用者可能在編輯，改用 toast 提示）
     setTimeout(checkVersion, 5 * 60 * 1000);
   }
 </script>
