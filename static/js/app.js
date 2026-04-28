@@ -356,10 +356,12 @@ var App = (function() {
   function _renderBoxPreview(ctx, mc, box) {
     // 遮罩框：只填色，不渲染文字
     if (box.isMask) {
+      _getOrigCtx(); // 確保原圖快取已初始化
       FillEngine.apply(ctx, mc, box, {
         fillMode: 'patch',
         patchSource: box.patchSource,
-        feather: FillEngine.getFeather('patch')
+        feather: 0,                // 硬邊覆蓋，精準貼合文字邊界
+        origCanvas: _origImgCanvas // 從原圖取樣，不受主畫布已填色影響
       });
       return;
     }
@@ -606,10 +608,12 @@ var App = (function() {
         // 遮罩框：不快取、不受互動狀態影響，每幀直接執行 FillEngine
         // （mask 框數量少，效能影響可忽略；互動中也必須維持可見）
         if (box.isMask) {
+          _getOrigCtx(); // 確保原圖快取已初始化
           FillEngine.apply(ctx, mc, box, {
             fillMode: 'patch',
             patchSource: box.patchSource,
-            feather: FillEngine.getFeather('patch')
+            feather: 0,                // 硬邊覆蓋
+            origCanvas: _origImgCanvas // 從原圖取樣
           });
           continue;
         }
@@ -899,10 +903,12 @@ var App = (function() {
 
       // 遮罩框：只填色不印字
       if (box.isMask) {
+        _getOrigCtx(); // 確保原圖快取已初始化
         FillEngine.apply(oc, off, box, {
           fillMode: 'patch',
           patchSource: box.patchSource,
-          feather: FillEngine.getFeather('patch')
+          feather: 0,                // 硬邊覆蓋，匯出精準
+          origCanvas: _origImgCanvas // 從原圖取樣
         });
         continue;
       }

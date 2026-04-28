@@ -199,14 +199,23 @@ var FillEngine = (function () {
 
   // ── 方案二：紋理補丁 + Alpha 遮罩羽化 ──
   // [Plan B] 複用持久 canvas，重設 width/height 即可清空，不再高頻 createElement
-  function applyPatch(ctx, canvas, box, source, featherPx) {
+  // srcCanvas：來源取樣用的畫布（遮罩框傳入原圖快取，避免讀到已被填色的主畫布）
+  function applyPatch(ctx, canvas, box, source, featherPx, srcCanvas) {
     featherPx = featherPx !== undefined ? featherPx : 5;
     if (!source) return false;
+    srcCanvas = srcCanvas || canvas; // 預設與主畫布相同
 
     var tx = Math.round(box.x), ty = Math.round(box.y);
     var tw = Math.round(box.w), th = Math.round(box.h);
     var sx = Math.round(source.x), sy = Math.round(source.y);
     var sw = Math.round(source.w), sh = Math.round(source.h);
+    if (tw < 1 || th < 1) return false;
+
+    // ── 邊界保護：目標範圍 clamp 至畫布內，防止靜默裁切 ──
+    if (tx < 0) { tw += tx; tx = 0; }
+    if (ty < 0) { th += ty; ty = 0; }
+    if (tx + tw > canvas.width)  tw = canvas.width  - tx;
+    if (ty + th > canvas.height) th = canvas.height - ty;
     if (tw < 1 || th < 1) return false;
 
     // 複用補丁 canvas（重設尺寸自動清空）
@@ -215,35 +224,37 @@ var FillEngine = (function () {
     _patchCanvas.height = th;
     var pCtx = _patchCanvas.getContext('2d');
 
-    // 把來源區域平鋪/縮放貼到補丁大小
-    pCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, tw, th);
+    // 從來源畫布取紋理（遮罩框使用原圖，避免讀到已被修改的主畫布像素）
+    pCtx.drawImage(srcCanvas, sx, sy, sw, sh, 0, 0, tw, th);
 
-    // 複用遮罩 canvas
-    if (!_maskCanvas) _maskCanvas = document.createElement('canvas');
-    _maskCanvas.width  = tw;
-    _maskCanvas.height = th;
-    var mCtx = _maskCanvas.getContext('2d');
+    if (featherPx > 0) {
+      // 複用遮罩 canvas，矩形羽化遮罩：四邊各做一條漸層
+      if (!_maskCanvas) _maskCanvas = document.createElement('canvas');
+      _maskCanvas.width  = tw;
+      _maskCanvas.height = th;
+      var mCtx = _maskCanvas.getContext('2d');
+      mCtx.clearRect(0, 0, tw, th);
+      mCtx.fillStyle = '#fff';
+      mCtx.fillRect(featherPx, featherPx, tw - featherPx * 2, th - featherPx * 2);
 
-    // 矩形羽化遮罩：四邊各做一條漸層
-    mCtx.fillStyle = '#fff';
-    mCtx.fillRect(featherPx, featherPx, tw - featherPx * 2, th - featherPx * 2);
+      function addGrad(x0, y0, x1, y1, rx0, ry0, rw, rh) {
+        var g = mCtx.createLinearGradient(x0, y0, x1, y1);
+        g.addColorStop(0, 'rgba(255,255,255,0)');
+        g.addColorStop(1, 'rgba(255,255,255,1)');
+        mCtx.fillStyle = g;
+        mCtx.fillRect(rx0, ry0, rw, rh);
+      }
+      addGrad(0, 0, featherPx, 0,         0, 0, featherPx, th); // 左
+      addGrad(tw, 0, tw-featherPx, 0,     tw-featherPx, 0, featherPx, th); // 右
+      addGrad(0, 0, 0, featherPx,         0, 0, tw, featherPx); // 上
+      addGrad(0, th, 0, th-featherPx,     0, th-featherPx, tw, featherPx); // 下
 
-    function addGrad(x0, y0, x1, y1, rx0, ry0, rw, rh) {
-      var g = mCtx.createLinearGradient(x0, y0, x1, y1);
-      g.addColorStop(0, 'rgba(255,255,255,0)');
-      g.addColorStop(1, 'rgba(255,255,255,1)');
-      mCtx.fillStyle = g;
-      mCtx.fillRect(rx0, ry0, rw, rh);
+      // 把遮罩套到補丁（destination-in）
+      pCtx.globalCompositeOperation = 'destination-in';
+      pCtx.drawImage(_maskCanvas, 0, 0);
+      pCtx.globalCompositeOperation = 'source-over';
     }
-    addGrad(0, 0, featherPx, 0,         0, 0, featherPx, th); // 左
-    addGrad(tw, 0, tw-featherPx, 0,     tw-featherPx, 0, featherPx, th); // 右
-    addGrad(0, 0, 0, featherPx,         0, 0, tw, featherPx); // 上
-    addGrad(0, th, 0, th-featherPx,     0, th-featherPx, tw, featherPx); // 下
-
-    // 把遮罩套到補丁（destination-in）
-    pCtx.globalCompositeOperation = 'destination-in';
-    pCtx.drawImage(_maskCanvas, 0, 0);
-    pCtx.globalCompositeOperation = 'source-over';
+    // featherPx === 0：硬邊直接貼，全不透明，精準覆蓋
 
     // 將補丁貼到主 canvas
     ctx.drawImage(_patchCanvas, tx, ty);
@@ -261,7 +272,10 @@ var FillEngine = (function () {
         // 沒有來源時 fallback 到方案一
         return applyAutoFill(ctx, canvas, box, 2);
       }
-      return applyPatch(ctx, canvas, box, src, options.feather !== undefined ? options.feather : 5);
+      var feather = options.feather !== undefined ? options.feather : 5;
+      // origCanvas：遮罩框從原圖取樣，價格框沿用主畫布
+      var srcCanvas = options.origCanvas || canvas;
+      return applyPatch(ctx, canvas, box, src, feather, srcCanvas);
     } else {
       return applyAutoFill(ctx, canvas, box, options.feather !== undefined ? options.feather : 2);
     }
