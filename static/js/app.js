@@ -18,8 +18,24 @@ var App = (function() {
   var redoStack = [];
   var MAX_UNDO = 30;
 
+  // 剝除不可序列化的快取屬性（canvas 元素 JSON 後變 {}，會造成 _bHit 誤判）
+  function _serializeBoxes() {
+    return JSON.stringify(boxes.map(function(b) {
+      var c = Object.assign({}, b);
+      delete c._fillCache;
+      delete c._fillCacheKey;
+      delete c._aiDone;
+      return c;
+    }));
+  }
+
+  // 還原後確保快取屬性乾淨（防止舊 undo stack 殘留 {} 誤命中）
+  function _clearBoxCaches(arr) {
+    arr.forEach(function(b) { b._fillCache = null; b._fillCacheKey = null; b._aiDone = false; });
+  }
+
   function saveState() {
-    undoStack.push(JSON.stringify(boxes));
+    undoStack.push(_serializeBoxes());
     if (undoStack.length > MAX_UNDO) undoStack.shift();
     redoStack = [];
     _updateUndoUI();
@@ -27,8 +43,9 @@ var App = (function() {
 
   function undo() {
     if (!undoStack.length) { setSt('沒有可復原的操作'); return; }
-    redoStack.push(JSON.stringify(boxes));
+    redoStack.push(_serializeBoxes());
     boxes = JSON.parse(undoStack.pop());
+    _clearBoxCaches(boxes); // 防止 {} 假命中
     renderPriceList();
     if (typeof Canvas !== 'undefined' && typeof Canvas.clearMultiSel === 'function') Canvas.clearMultiSel();
     redraw();
@@ -38,8 +55,9 @@ var App = (function() {
 
   function redo() {
     if (!redoStack.length) { setSt('沒有可重做的操作'); return; }
-    undoStack.push(JSON.stringify(boxes));
+    undoStack.push(_serializeBoxes());
     boxes = JSON.parse(redoStack.pop());
+    _clearBoxCaches(boxes); // 防止 {} 假命中
     renderPriceList();
     if (typeof Canvas !== 'undefined' && typeof Canvas.clearMultiSel === 'function') Canvas.clearMultiSel();
     redraw();
