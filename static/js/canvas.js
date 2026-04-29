@@ -457,22 +457,22 @@ var Canvas = (function() {
 
     if (!patchSelecting && !isMaskMode && !isTextMode && document.getElementById('fp').classList.contains('open')) return;
 
-    if (typeof FillEngine !== 'undefined' &&
-        FillEngine.getMode() === 'patch' &&
-        !FillEngine.getPatchSource() &&
-        !patchSelecting) {
-      App.setSt('⚠️ 請先點擊「點此選取來源」設定紋理補丁來源區域');
-      var patchCard = document.getElementById('patch-hint');
-      if (patchCard) {
-        patchCard.classList.add('needs-source', 'shake');
-        setTimeout(function() { patchCard.classList.remove('shake'); }, 500);
-      }
-      e.preventDefault();
-      return;
-    }
-
     // 3. Tab 按住 → 繪框模式；patch 選取中、遮罩模式或文字工具模式也直接進入繪框
     if (tabHeld || patchSelecting || isMaskMode || isTextMode) {
+      // FillEngine patch-source 檢查：只在「畫新框」時才擋，不影響點擊舊框編輯
+      if (tabHeld && !patchSelecting &&
+          typeof FillEngine !== 'undefined' &&
+          FillEngine.getMode() === 'patch' &&
+          !FillEngine.getPatchSource()) {
+        App.setSt('⚠️ 請先點擊「點此選取來源」設定紋理補丁來源區域');
+        var patchCard = document.getElementById('patch-hint');
+        if (patchCard) {
+          patchCard.classList.add('needs-source', 'shake');
+          setTimeout(function() { patchCard.classList.remove('shake'); }, 500);
+        }
+        e.preventDefault();
+        return;
+      }
       startX = p.x; startY = p.y;
       drawing = true;
       curBox = { x: p.x, y: p.y, w: 0, h: 0 };

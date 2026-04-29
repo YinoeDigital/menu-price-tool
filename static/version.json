@@ -1,4 +1,4 @@
 {
-  "version": "1.5.49",
-  "note": "修復菜單庫載入按鈕：setOrient 加 null 防護，防止 TypeError 崩潰"
+  "version": "1.5.50",
+  "note": "修復菜單庫載入後點擊畫框無法呼叫編輯器：FillEngine 來源檢查移至繪框模式內，不再阻擋點擊舊框"
 }
