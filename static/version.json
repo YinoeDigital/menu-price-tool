@@ -1,4 +1,4 @@
 {
-  "version": "1.5.48",
-  "note": "加寬確認對話框（360px），三個按鈕同列不斷行"
+  "version": "1.5.49",
+  "note": "修復菜單庫載入按鈕：setOrient 加 null 防護，防止 TypeError 崩潰"
 }

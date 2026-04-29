@@ -882,9 +882,12 @@ var App = (function() {
   // ── ORIENTATION ──
   function setOrient(o) {
     orientation = o;
-    document.getElementById('oH').classList.toggle('active', o === 'horizontal');
-    document.getElementById('oV').classList.toggle('active', o === 'vertical');
-    document.getElementById('oA').classList.toggle('active', o === 'auto');
+    var elH = document.getElementById('oH');
+    var elV = document.getElementById('oV');
+    var elA = document.getElementById('oA');
+    if (elH) elH.classList.toggle('active', o === 'horizontal');
+    if (elV) elV.classList.toggle('active', o === 'vertical');
+    if (elA) elA.classList.toggle('active', o === 'auto');
   }
 
   // ── EXPORT ──
