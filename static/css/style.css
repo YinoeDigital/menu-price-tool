@@ -573,7 +573,7 @@ canvas.ruler-v{display:block;width:20px;cursor:e-resize;background:#ebebeb;borde
 .cdov.open{opacity:1;pointer-events:all;}
 .cd{
   background:var(--wh);border-radius:var(--rlg);
-  padding:22px 22px 18px;width:280px;
+  padding:22px 22px 18px;width:360px;
   box-shadow:0 8px 32px rgba(0,0,0,.18);
 }
 .cd-icon{
@@ -584,6 +584,7 @@ canvas.ruler-v{display:block;width:20px;cursor:e-resize;background:#ebebeb;borde
 .cd-title{font-size:15px;font-weight:500;color:var(--gdk);margin-bottom:6px;}
 .cd-desc{font-size:13px;color:var(--gmd);line-height:1.6;margin-bottom:16px;}
 .cd-acts{display:flex;gap:8px;}
+.cd-acts .btn{white-space:nowrap;}
 
 /* ── Deal % Toggle Switch ── */
 .tog{position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0;cursor:pointer;}
