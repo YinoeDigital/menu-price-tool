@@ -7,6 +7,7 @@ var App = (function() {
   var currentImgB64 = null;
   var hist = [];
   var confirmCB = null;
+  var _saveAsCB = null;
   var enhancementApplied = false;
   var _aiAlignHints = {}; // 非破壞性對齊 hint：{ boxId: { textAlign?, verticalAlign? } }
   var globalDeal = 80;
@@ -1048,10 +1049,33 @@ var App = (function() {
       mc.dataset.name || '未命名'
     );
     if (result.existing) {
-      showCD('更新菜單', '「' + result.entry.name + '」已存在，要覆蓋更新嗎？', '取消', '更新', function() {
-        Library.updateEntry(result.index, result.entry);
-        setSt('菜單庫已更新：' + result.entry.name);
-      });
+      // 產生日期後綴（另存新檔用）
+      var _d2 = new Date();
+      var _p2 = function(n) { return n < 10 ? '0' + n : '' + n; };
+      var _dateSuffix = _d2.getFullYear() + '.' + _p2(_d2.getMonth() + 1) + '.' + _p2(_d2.getDate());
+      var _origEntry = result.entry;
+      showCD(
+        '更新菜單',
+        '「' + _origEntry.name + '」已存在，要覆蓋更新，還是另存一份？',
+        '取消', '覆蓋更新',
+        function() {
+          Library.updateEntry(result.index, _origEntry);
+          setSt('菜單庫已更新：' + _origEntry.name);
+        },
+        '另存新檔',
+        function() {
+          // 用日期後綴建立新名稱，確保不重複
+          var newName = _origEntry.name + '_' + _dateSuffix;
+          var newEntry = JSON.parse(JSON.stringify(_origEntry));
+          newEntry.name = newName;
+          newEntry.id   = 'lib' + Date.now() + '' + Math.round(Math.random() * 1e4);
+          // 確保圖片 imgData 從原 entry 取回（JSON.stringify 已複製）
+          if (_origEntry.imgData) newEntry.imgData = _origEntry.imgData;
+          Library.forceAdd(newEntry);
+          setSt('已另存新檔：' + newName);
+          showTab('lib');
+        }
+      );
     } else {
       setSt('已儲存至菜單庫：' + result.entry.name);
       showTab('lib');
@@ -1219,19 +1243,31 @@ var App = (function() {
   }
 
   // ── CONFIRM DIALOG ──
-  function showCD(title, desc, cancelTxt, okTxt, cb) {
+  // saveAsTxt / saveAsCB 為選填，傳入時顯示第三個「另存新檔」按鈕
+  function showCD(title, desc, cancelTxt, okTxt, cb, saveAsTxt, saveAsCB) {
     confirmCB = cb;
+    _saveAsCB = saveAsCB || null;
     document.getElementById('cdTitle').textContent = title;
     document.getElementById('cdDesc').textContent = desc;
     document.getElementById('cdCancel').textContent = cancelTxt;
     document.getElementById('cdOk').textContent = okTxt;
+    var saBtn = document.getElementById('cdSaveAs');
+    if (saBtn) {
+      saBtn.style.display = _saveAsCB ? '' : 'none';
+      if (saveAsTxt) saBtn.textContent = saveAsTxt;
+    }
     document.getElementById('cdov').classList.add('open');
   }
 
-  function closeCD(ok) {
+  function closeCD(result) {
     document.getElementById('cdov').classList.remove('open');
-    if (ok && confirmCB) confirmCB();
+    if (result === true && confirmCB) confirmCB();
+    else if (result === 'saveAs' && _saveAsCB) _saveAsCB();
     confirmCB = null;
+    _saveAsCB = null;
+    // 隱藏另存新檔按鈕（還原預設狀態）
+    var saBtn = document.getElementById('cdSaveAs');
+    if (saBtn) saBtn.style.display = 'none';
   }
 
   // ── TABS ──

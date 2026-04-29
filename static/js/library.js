@@ -1,4 +1,4 @@
-// library.js — 菜單庫管理（v1.5.43）
+// library.js — 菜單庫管理（v1.5.47）
 // 圖片存入 IndexedDB（不限大小），metadata 存入 localStorage
 
 var Library = (function() {
@@ -203,6 +203,15 @@ var Library = (function() {
     render();
   }
 
+  // 強制以新筆記錄加入（另存新檔用，不做同名檢查）
+  function forceAdd(entry) {
+    if (entry.imgData) _idbPut(entry.id, entry.imgData, null);
+    library.unshift(entry);
+    _checkLimit();
+    _saveMeta();
+    render();
+  }
+
   function removeEntry(id) {
     library = library.filter(function(l) { return l.id !== id; });
     _idbDel(id);
@@ -311,6 +320,7 @@ var Library = (function() {
     getById        : getById,
     getImage       : getImage,
     saveEntry      : saveEntry,
+    forceAdd       : forceAdd,
     updateEntry    : updateEntry,
     removeEntry    : removeEntry,
     duplicateEntry : duplicateEntry,
