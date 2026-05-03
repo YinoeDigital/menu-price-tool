@@ -9,8 +9,8 @@
 <title>菜單價格調整工具</title>
 <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;700&family=Ma+Shan+Zheng&family=Liu+Jian+Mao+Cao&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="static/css/style.css?v=1.5.54">
-<script>var APP_VERSION = '1.5.54';</script>
+<link rel="stylesheet" href="static/css/style.css?v=1.5.55">
+<script>var APP_VERSION = '1.5.55';</script>
 </head>
 <body>
 <div class="app">
@@ -88,14 +88,14 @@
             </svg>
             上傳菜單
           </div>
-          <div class="upload-zone" onclick="document.getElementById('fi').click()">
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fi').click()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
             </svg>
-            <div class="uz-lbl" id="ulbl">點擊選擇圖片</div>
-            <div class="uz-sub">支援 JPG・PNG・WEBP</div>
+            <div class="uz-lbl" id="ulbl">點擊或拖曳圖片</div>
+            <div class="uz-sub">支援 JPG・PNG・WEBP・HEIC</div>
           </div>
-          <input type="file" id="fi" accept="image/*" style="display:none">
+          <input type="file" id="fi" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" style="display:none">
         </div>
 
         <!-- 字型 select 隱藏保留，供 app.js redraw 讀取全域預設 -->
@@ -663,7 +663,7 @@
       <div class="sdot"></div>
       <span id="stTxt">等待上傳圖片</span>
       <span style="margin-left:auto;font-size:11px;color:var(--gmd);" id="coordTxt"></span>
-      <span class="ver-badge" id="verBadge" title="目前版本">v1.5.54</span>
+      <span class="ver-badge" id="verBadge" title="目前版本">v1.5.55</span>
     </div>
 
   </div><!-- /main -->
@@ -696,9 +696,28 @@
   </div>
 </div>
 
+<!-- Tutorial Overlay -->
+<div class="tutorial-ov" id="tutorialOv" aria-hidden="true">
+  <div class="tutorial-spot" id="tutorialSpot"></div>
+  <div class="tutorial-arrow" id="tutorialArrow"><span></span></div>
+  <div class="tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+    <button class="tutorial-x" id="tutorialClose" title="關閉教學">×</button>
+    <div class="tutorial-kicker" id="tutorialKicker">快速教學</div>
+    <h2 id="tutorialTitle">歡迎使用</h2>
+    <p id="tutorialBody"></p>
+    <div class="tutorial-meta" id="tutorialMeta">1 / 10</div>
+    <div class="tutorial-actions">
+      <button class="tutorial-btn ghost" id="tutorialToday">今日不再顯示</button>
+      <button class="tutorial-btn ghost" id="tutorialPrev">上一步</button>
+      <button class="tutorial-btn primary" id="tutorialNext">下一步</button>
+    </div>
+  </div>
+</div>
+
 <!-- Scripts — 順序重要 -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
-<script src="static/js/canvas.js?v=1.5.54"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="static/js/canvas.js?v=1.5.55"></script>
 <!-- Update Toast -->
 <div class="upd-toast" id="updToast">
   <div class="upd-icon">
@@ -719,12 +738,13 @@
   </button>
 </div>
 
-<script src="static/js/rulers.js?v=1.5.54"></script>
-<script src="static/js/fillengine.js?v=1.5.54"></script>
-<script src="static/js/groups.js?v=1.5.54"></script>
-<script src="static/js/library.js?v=1.5.54"></script>
-<script src="static/js/floatpanel.js?v=1.5.54"></script>
-<script src="static/js/app.js?v=1.5.54"></script>
+<script src="static/js/rulers.js?v=1.5.55"></script>
+<script src="static/js/fillengine.js?v=1.5.55"></script>
+<script src="static/js/groups.js?v=1.5.55"></script>
+<script src="static/js/library.js?v=1.5.55"></script>
+<script src="static/js/floatpanel.js?v=1.5.55"></script>
+<script src="static/js/app.js?v=1.5.55"></script>
+<script src="static/js/tutorial.js?v=1.5.55"></script>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
     // 若由「重新整理」按鈕帶著 ?_cb= 參數進來，立即清掉 URL
@@ -736,6 +756,7 @@
     if (_b) _b.textContent = 'v' + APP_VERSION;
     App.init();
     Rulers.init();
+    if (window.Tutorial) Tutorial.init();
     checkVersion();
   });
 

@@ -107,6 +107,21 @@ var App = (function() {
 
   function bindUI() {
     document.getElementById('fi').addEventListener('change', handleFileUpload);
+    var uploadZone = document.getElementById('uploadZone');
+    if (uploadZone) {
+      uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+      });
+      uploadZone.addEventListener('dragleave', function() {
+        uploadZone.classList.remove('dragover');
+      });
+      uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        handleFileUpload(e);
+      });
+    }
     var jiEl = document.getElementById('ji');
     if (jiEl) jiEl.addEventListener('change', handleJSONLoad);
 
@@ -177,9 +192,13 @@ var App = (function() {
   }
 
   // ── FILE UPLOAD ──
-  function handleFileUpload(e) {
-    var f = e.target.files[0];
-    if (!f) return;
+  function isHeicFile(file) {
+    var name = (file && file.name ? file.name : '').toLowerCase();
+    var type = (file && file.type ? file.type : '').toLowerCase();
+    return /\.(heic|heif)$/.test(name) || type === 'image/heic' || type === 'image/heif';
+  }
+
+  function readMenuImageFile(file, displayName, fmt) {
     var rd = new FileReader();
     rd.onload = function(ev) {
       currentImgB64 = ev.target.result;
@@ -193,19 +212,50 @@ var App = (function() {
         document.getElementById('emptySt').style.display = 'none';
         document.getElementById('cc').style.display = 'block';
         var mc = Canvas.getCanvas();
-        mc.dataset.fmt = f.name.split('.').pop().toLowerCase();
-        mc.dataset.name = f.name;
-        var nm = f.name.length > 22 ? f.name.substring(0, 20) + '…' : f.name;
+        mc.dataset.fmt = fmt || displayName.split('.').pop().toLowerCase();
+        mc.dataset.name = displayName;
+        var nm = displayName.length > 22 ? displayName.substring(0, 20) + '…' : displayName;
         document.getElementById('ulbl').textContent = nm;
         Canvas.fitToWindow();
         redraw();
-        setSt('已載入：' + f.name + '（' + i.width + '×' + i.height + 'px）');
+        setSt('已載入：' + displayName + '（' + i.width + '×' + i.height + 'px）');
         // 背景初始化 OCR 引擎
         setTimeout(initOcr, 800);
       };
+      i.onerror = function() {
+        setSt('⚠ 圖片載入失敗，請改用 JPG、PNG 或 WEBP');
+        alert('圖片載入失敗，請確認檔案格式為 JPG、PNG、WEBP、HEIC 或 HEIF。');
+      };
       i.src = ev.target.result;
     };
-    rd.readAsDataURL(f);
+    rd.readAsDataURL(file);
+  }
+
+  function handleFileUpload(e) {
+    var f = (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) || (e.target.files && e.target.files[0]);
+    if (!f) return;
+
+    if (isHeicFile(f)) {
+      if (typeof heic2any !== 'function') {
+        setSt('⚠ HEIC 轉換工具尚未載入，請改用 JPG 或 PNG');
+        alert('目前瀏覽器尚未載入 HEIC 轉換工具，請稍後重試，或先將照片轉成 JPG/PNG。');
+        return;
+      }
+      setSt('正在轉換 HEIC 圖片…');
+      heic2any({ blob: f, toType: 'image/jpeg', quality: 0.92 })
+        .then(function(result) {
+          var blob = Array.isArray(result) ? result[0] : result;
+          var convertedName = f.name.replace(/\.(heic|heif)$/i, '.jpg');
+          readMenuImageFile(blob, convertedName, 'jpg');
+        })
+        .catch(function() {
+          setSt('⚠ HEIC 轉換失敗，請改用 JPG 或 PNG 再上傳');
+          alert('HEIC 轉換失敗，請改用 JPG 或 PNG 再上傳。');
+        });
+      return;
+    }
+
+    readMenuImageFile(f, f.name, f.name.split('.').pop().toLowerCase());
   }
 
   // ── 前後綴溢出背景填色 ──
