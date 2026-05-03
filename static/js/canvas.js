@@ -454,6 +454,20 @@ var Canvas = (function() {
 
     // FillEngine patch check
     var patchSelecting = typeof FillEngine !== 'undefined' && FillEngine.isPatchSelecting();
+    var patchNeedsSource = typeof FillEngine !== 'undefined' &&
+      FillEngine.getMode && FillEngine.getMode() === 'patch' &&
+      FillEngine.getPatchSource && !FillEngine.getPatchSource();
+
+    if (!tabHeld && !patchSelecting && !isMaskMode && !isTextMode && !e.altKey &&
+        patchNeedsSource &&
+        typeof App.consumeInitialPatchSourceHint === 'function' &&
+        App.consumeInitialPatchSourceHint()) {
+      if (typeof FillEngine.nudgePatchSourceRequired === 'function') {
+        FillEngine.nudgePatchSourceRequired("⚠️ 請先在左側「覆蓋填色方案」點擊「點此選取來源」，再框選價格");
+      }
+      e.preventDefault();
+      return;
+    }
 
     if (!patchSelecting && !isMaskMode && !isTextMode && document.getElementById('fp').classList.contains('open')) return;
 
@@ -464,11 +478,8 @@ var Canvas = (function() {
           typeof FillEngine !== 'undefined' &&
           FillEngine.getMode() === 'patch' &&
           !FillEngine.getPatchSource()) {
-        App.setSt('⚠️ 請先點擊「點此選取來源」設定紋理補丁來源區域');
-        var patchCard = document.getElementById('patch-hint');
-        if (patchCard) {
-          patchCard.classList.add('needs-source', 'shake');
-          setTimeout(function() { patchCard.classList.remove('shake'); }, 500);
+        if (typeof FillEngine.nudgePatchSourceRequired === 'function') {
+          FillEngine.nudgePatchSourceRequired();
         }
         e.preventDefault();
         return;

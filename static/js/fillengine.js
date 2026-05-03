@@ -53,6 +53,15 @@ var FillEngine = (function () {
   function setPatchSelecting(v) { patchSelecting = v; }
   function getPatchSource() { return patchSource; }
 
+  function nudgePatchSourceRequired(message) {
+    App.setSt(message || "⚠️ 請先點擊「點此選取來源」設定紋理補丁來源區域");
+    var patchCard = document.getElementById("patch-hint");
+    if (patchCard) {
+      patchCard.classList.add("needs-source", "shake");
+      setTimeout(function() { patchCard.classList.remove("shake"); }, 500);
+    }
+  }
+
   function startPatchSelect() {
     patchSource = null; // clear old source
     patchSelecting = true;
@@ -297,6 +306,7 @@ var FillEngine = (function () {
     isPatchSelecting: isPatchSelecting,
     setPatchSelecting: setPatchSelecting,
     getPatchSource: getPatchSource,
+    nudgePatchSourceRequired: nudgePatchSourceRequired,
     setPatchSource: setPatchSource,
     startPatchSelect: startPatchSelect,
     applyAutoFill: applyAutoFill,

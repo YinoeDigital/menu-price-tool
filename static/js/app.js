@@ -9,6 +9,7 @@ var App = (function() {
   var confirmCB = null;
   var _saveAsCB = null;
   var enhancementApplied = false;
+  var needsInitialPatchSourceHint = false;
   var _aiAlignHints = {}; // 非破壞性對齊 hint：{ boxId: { textAlign?, verticalAlign? } }
   var globalDeal = 80;
   var isDealEnabled = false;
@@ -188,6 +189,7 @@ var App = (function() {
         _aiAlignHints = {};
         _invalidateAllFillCaches();
         Canvas.setImage(i);
+        needsInitialPatchSourceHint = true;
         document.getElementById('emptySt').style.display = 'none';
         document.getElementById('cc').style.display = 'block';
         var mc = Canvas.getCanvas();
@@ -1116,6 +1118,7 @@ var App = (function() {
           _aiAlignHints = {};
           _invalidateAllFillCaches();
           Canvas.setImage(i);
+          needsInitialPatchSourceHint = true;
           var mc = Canvas.getCanvas();
           mc.dataset.fmt = e.fmt || 'png';
           mc.dataset.name = e.name + '.' + (e.fmt || 'png');
@@ -1878,6 +1881,12 @@ var App = (function() {
 
   function isOcrReady() { return ocrReady; }
 
+  function consumeInitialPatchSourceHint() {
+    if (!needsInitialPatchSourceHint) return false;
+    needsInitialPatchSourceHint = false;
+    return true;
+  }
+
   // ── UTILS ──
   function getGlobalPct() { return parseFloat(document.getElementById('pctIn').value) || 0; }
   function getGlobalDeal() { return globalDeal; }
@@ -1990,6 +1999,7 @@ var App = (function() {
     setTipsOS: setTipsOS,
     applyFontToAll: applyFontToAll,
     isOcrReady: isOcrReady,
+    consumeInitialPatchSourceHint: consumeInitialPatchSourceHint,
     detectPrice: detectPrice,
     autoDetectBoxStyle: _autoDetectBoxStyle,
     enhanceQuality: enhanceQuality,
