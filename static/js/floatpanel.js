@@ -224,11 +224,13 @@ var FloatPanel = (function() {
   // ── 計算新價格（商家抽成 + Deal % + 四捨五入）──
   function calcNewPrice(rawVal) {
     rawVal = parseFloat(stripCommas(String(rawVal)));
-    if (!App.commissionIsActive()) return rawVal; // 抽成關閉 → 直接回傳原價
-    var g = fpGroup ? Groups.getById(fpGroup) : null;
-    var commission = g ? g.pct : App.getGlobalPct();
-    if (commission >= 100) return rawVal;
-    var nv = Math.floor(rawVal / (1 - commission / 100));
+    var nv = rawVal;
+    if (App.commissionIsActive()) {
+      var g = fpGroup ? Groups.getById(fpGroup) : null;
+      var commission = g ? g.pct : App.getGlobalPct();
+      if (commission >= 100) return rawVal;
+      nv = Math.floor(nv / (1 - commission / 100));
+    }
     if (App.dealIsActive()) {
       var deal = App.getGlobalDeal();
       if (deal > 0 && deal < 100) nv = Math.floor(nv / (deal / 100));
@@ -242,19 +244,7 @@ var FloatPanel = (function() {
 
   // ── 商家抽成開關切換時更新 FloatPanel UI ──
   function updateCommissionUI() {
-    var active = App.commissionIsActive();
-    var calcGroup = document.getElementById('fpCalcGroup');
-    var pctRow = document.getElementById('fpPct');
-    var dealRow = document.getElementById('fpDealRow');
-    if (calcGroup) calcGroup.style.display = active ? '' : 'none';
-    if (pctRow) {
-      pctRow.textContent = active ? (App.getEffPct(currentBox || {}) || App.getGlobalPct()) + '%' : '關閉';
-      pctRow.style.color = active ? '' : 'var(--gmd)';
-    }
-    // Deal % 列跟著抽成一起隱藏
-    if (dealRow) dealRow.style.display = (active && App.dealIsActive()) ? '' : 'none';
-    // 重新計算新價格顯示
-    updateNewPrice();
+    updateGroupInfo();
   }
 
   function updateNewPrice() {
@@ -634,17 +624,29 @@ var FloatPanel = (function() {
   function updateGroupInfo() {
     var g = fpGroup ? Groups.getById(fpGroup) : null;
     var pct = g ? g.pct : App.getGlobalPct();
-    document.getElementById('fpGrpName').textContent = g ? g.name : '全域';
-    document.getElementById('fpGrpName').style.color = g ? g.color : '#C0392B';
-    document.getElementById('fpPct').textContent = pct + '%';
-    // Deal % 列：開啟時顯示
-    var dealRow = document.getElementById('fpDealRow');
-    var dealEl  = document.getElementById('fpDeal');
-    if (dealRow && dealEl) {
-      var on = App.dealIsActive();
-      dealRow.style.display = on ? '' : 'none';
-      if (on) dealEl.textContent = App.getGlobalDeal() + '%';
+    var commissionOn = App.commissionIsActive();
+    var dealOn = App.dealIsActive();
+
+    var groupRow = document.getElementById("fpGroupFactorRow");
+    var pctRow = document.getElementById("fpPctRow");
+    var pctEl = document.getElementById("fpPct");
+    var dealRow = document.getElementById("fpDealRow");
+    var dealEl = document.getElementById("fpDeal");
+    var calcGroup = document.getElementById("fpCalcGroup");
+
+    document.getElementById("fpGrpName").textContent = g ? g.name : "全域";
+    document.getElementById("fpGrpName").style.color = g ? g.color : "#C0392B";
+
+    if (groupRow) groupRow.style.display = commissionOn ? "" : "none";
+    if (pctRow) pctRow.style.display = commissionOn ? "" : "none";
+    if (pctEl) {
+      pctEl.textContent = pct + "%";
+      pctEl.style.color = "";
     }
+    if (dealRow) dealRow.style.display = dealOn ? "" : "none";
+    if (dealEl && dealOn) dealEl.textContent = App.getGlobalDeal() + "%";
+    if (calcGroup) calcGroup.style.display = (commissionOn || dealOn) ? "inline-flex" : "none";
+
     updateNewPrice();
   }
 

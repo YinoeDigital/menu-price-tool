@@ -163,10 +163,12 @@ var App = (function() {
 
   // ── 計算單一 box 最終新價格 ──
   function calcBoxPrice(box) {
-    if (!isCommissionEnabled) return box.newValue > 0 ? box.newValue : box.value;
-    var commission = getEffPct(box);
-    if (commission >= 100) return box.value; // 防止除以零
-    var nv = Math.floor(box.value / (1 - commission / 100));
+    var nv = box.value;
+    if (isCommissionEnabled) {
+      var commission = getEffPct(box);
+      if (commission >= 100) return box.value; // 防止除以零
+      nv = Math.floor(nv / (1 - commission / 100));
+    }
     if (isDealEnabled && globalDeal > 0 && globalDeal < 100) {
       nv = Math.floor(nv / (globalDeal / 100));
     }
