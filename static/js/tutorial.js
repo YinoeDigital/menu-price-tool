@@ -112,6 +112,7 @@ var Tutorial = (function() {
   }
 
   function close() {
+    clearStepState();
     ov.classList.remove('show');
     ov.setAttribute('aria-hidden', 'true');
   }
@@ -126,8 +127,22 @@ var Tutorial = (function() {
     render();
   }
 
+  function clearStepState() {
+    var fp = document.getElementById('fp');
+    if (fp) fp.classList.remove('tutorial-open');
+  }
+
+  function applyStepState(step) {
+    clearStepState();
+    if (step.target === '#fp') {
+      var fp = document.getElementById('fp');
+      if (fp && !fp.classList.contains('open')) fp.classList.add('tutorial-open');
+    }
+  }
+
   function render() {
     var step = steps[idx];
+    applyStepState(step);
     title.textContent = step.title;
     body.textContent = step.body;
     meta.textContent = (idx + 1) + ' / ' + steps.length;

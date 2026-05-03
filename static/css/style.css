@@ -427,6 +427,7 @@ canvas.ruler-v{display:block;width:20px;cursor:e-resize;background:#ebebeb;borde
   pointer-events:none;
 }
 .fp.open{transform:translateX(0);pointer-events:all;}
+.fp.tutorial-open{transform:translateX(0);pointer-events:none;}
 .fp-hd{
   background:var(--red);padding:13px 15px;
   display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
