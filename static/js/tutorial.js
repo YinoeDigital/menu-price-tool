@@ -149,6 +149,7 @@ var Tutorial = (function() {
     prevBtn.disabled = idx === 0;
     nextBtn.textContent = idx === steps.length - 1 ? '完成' : '下一步';
     setTimeout(position, 20);
+    if (step.target === '#fp') setTimeout(position, 80);
   }
 
   function position() {
